@@ -20,6 +20,14 @@ export const user = pgTable('user', {
   fullName: text('full_name'),
   phone: text('phone'),
   country: text('country'),
+  // Onboarding + tailoring — added 2026-08-09 for the personalized dashboard.
+  userType: text('user_type'),
+  capitalTier: text('capital_tier'),
+  interestSectors: text('interest_sectors'),
+  interestCategories: text('interest_categories'),
+  onboardedAt: timestamp('onboarded_at', { withTimezone: true }),
+  onboardingSkippedAt: timestamp('onboarding_skipped_at', { withTimezone: true }),
+  locale: text('locale'),
 })
 
 export const session = pgTable('session', {

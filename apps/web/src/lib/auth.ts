@@ -42,6 +42,15 @@ export const auth = betterAuth({
       fullName: { type: 'string', required: false },
       phone: { type: 'string', required: false },
       country: { type: 'string', required: false },
+      // Onboarding + tailoring signals used by /dashboard.
+      // interestSectors + interestCategories are stored as JSON-encoded arrays.
+      userType: { type: 'string', required: false },
+      capitalTier: { type: 'string', required: false },
+      interestSectors: { type: 'string', required: false },
+      interestCategories: { type: 'string', required: false },
+      onboardedAt: { type: 'date', required: false },
+      onboardingSkippedAt: { type: 'date', required: false },
+      locale: { type: 'string', required: false },
     },
   },
   // Trust every origin the app might legitimately be served from. Reading a

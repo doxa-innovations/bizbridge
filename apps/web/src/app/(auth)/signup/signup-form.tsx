@@ -34,8 +34,8 @@ export function SignupForm() {
         name: fullName,
         // @ts-expect-error — Better Auth additionalFields aren't in the typed signature
         country,
-        user_type: userType,
-        full_name: fullName,
+        userType,
+        fullName,
       })
       if (res.error) {
         setError(res.error.message ?? 'Signup failed')
