@@ -5,35 +5,45 @@
 @layer base {
   :root,
   [data-theme='dark'] {
-    --bg: 6 6 6;
-    --surface: 12 12 12;
-    --surface-2: 18 18 18;
-    --surface-3: 26 26 26;
+    /* Warm off-black canvas — less fatiguing on the eye than pure #060606,
+       still deep enough for a data-forward dashboard. */
+    --bg: 20 18 16;
+    --surface: 30 26 22;
+    --surface-2: 40 34 28;
+    --surface-3: 52 44 36;
 
-    --ink: 244 244 240;
-    --ink-muted: 148 148 148;
-    --ink-faint: 92 92 92;
+    --ink: 244 242 238;
+    --ink-muted: 176 172 164;
+    --ink-faint: 128 124 116;
 
-    --border: 32 32 32;
-    --border-strong: 52 52 52;
+    --border: 56 48 40;
+    --border-strong: 84 74 62;
 
-    --brand: 63 171 137;
-    --brand-strong: 40 130 100;
-    --brand-muted: 12 30 24;
-    --brand-foreground: 6 6 6;
+    /* Coffee-gold — the primary brand accent. Ethiopian-rooted, warm,
+       reads distinctly as coffee/gold rather than generic fintech amber. */
+    --brand: 200 155 78;
+    --brand-strong: 224 175 92;
+    --brand-muted: 40 32 20;
+    --brand-foreground: 20 18 16;
 
-    --accent: 210 210 210;
-    --accent-muted: 30 30 30;
+    /* Coffee-gold is also the data-accent. Kept as separate token so
+       secondary UI can be retuned without touching brand later. */
+    --accent: 200 155 78;
+    --accent-muted: 40 32 20;
 
-    --success: 63 171 137;
-    --warn: 220 190 100;
-    --danger: 220 100 92;
+    /* Emerald is now a "success/verified" role only, not the primary brand.
+       Down-toned from the old high-chroma mint so it doesn't compete. */
+    --success: 122 190 148;
+    --warn: 224 175 92;
+    --danger: 220 110 110;
 
-    --chart-1: 63 171 137;
-    --chart-2: 244 244 240;
-    --chart-3: 92 92 92;
-    --chart-4: 148 148 148;
-    --chart-5: 40 130 100;
+    /* Chart palette — coffee-gold primary, muted mint secondary,
+       warm neutrals for reference. Avoid rainbow ramps. */
+    --chart-1: 200 155 78;
+    --chart-2: 122 190 148;
+    --chart-3: 176 172 164;
+    --chart-4: 224 175 92;
+    --chart-5: 100 92 82;
 
     --radius: 0.625rem;
     color-scheme: dark;
@@ -45,30 +55,31 @@
     --surface-2: 239 235 220;
     --surface-3: 226 221 200;
 
-    --ink: 15 22 20;
-    --ink-muted: 92 98 90;
-    --ink-faint: 140 146 138;
+    --ink: 30 24 18;
+    --ink-muted: 92 88 78;
+    --ink-faint: 140 134 122;
 
-    --border: 226 221 200;
-    --border-strong: 200 194 170;
+    --border: 226 220 200;
+    --border-strong: 200 192 168;
 
-    --brand: 15 77 61;
-    --brand-strong: 8 44 34;
-    --brand-muted: 220 237 229;
+    /* Deeper coffee-gold for light-mode contrast against the cream canvas. */
+    --brand: 148 108 44;
+    --brand-strong: 116 82 28;
+    --brand-muted: 244 232 208;
     --brand-foreground: 255 255 255;
 
-    --accent: 15 77 61;
-    --accent-muted: 220 237 229;
+    --accent: 148 108 44;
+    --accent-muted: 244 232 208;
 
-    --success: 15 77 61;
-    --warn: 140 123 63;
+    --success: 40 130 100;
+    --warn: 148 108 44;
     --danger: 180 50 40;
 
-    --chart-1: 15 77 61;
-    --chart-2: 27 119 88;
-    --chart-3: 8 44 34;
-    --chart-4: 140 146 138;
-    --chart-5: 92 98 90;
+    --chart-1: 148 108 44;
+    --chart-2: 40 130 100;
+    --chart-3: 92 88 78;
+    --chart-4: 116 82 28;
+    --chart-5: 140 134 122;
 
     color-scheme: light;
   }

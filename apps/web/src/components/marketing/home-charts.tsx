@@ -24,14 +24,14 @@ const CATEGORY_COLORS: Record<string, string> = {
   'manufacturing': '#c66a3a',
   'electricity-gas-water-waste': '#3a8f9c',
   'construction': '#a05c50',
-  'wholesale-retail-hotels-import-export': '#1B7758',
+  'wholesale-retail-hotels-import-export': '#2E8B76',
   'transport-storage-communication': '#4c6ea8',
   'finance-insurance-real-estate-business': '#a48242',
   'community-social-personal-services': '#7d5e88',
 }
 
 const FALLBACK_PALETTE = [
-  '#1B7758', '#c66a3a', '#4c6ea8', '#a48242', '#7d5e88',
+  '#C89B4E', '#c66a3a', '#4c6ea8', '#2E8B76', '#7d5e88',
   '#3a8f9c', '#a05c50', '#3f6b52', '#8a6a3d',
 ]
 
@@ -278,7 +278,7 @@ export function HomeCharts({ categories }: HomeChartsProps) {
               type: 'gradient',
               gradient: { opacityFrom: 0.4, opacityTo: 0.05, stops: [0, 100] },
             },
-            colors: ['#c66a3a', '#4c6ea8', '#1B7758'],
+            colors: ['#C89B4E', '#4c6ea8', '#2E8B76'],
             legend: {
               position: 'top',
               horizontalAlign: 'left',
