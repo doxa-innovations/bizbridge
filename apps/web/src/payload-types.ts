@@ -82,6 +82,11 @@ export interface Config {
     pages: Page;
     'blog-posts': BlogPost;
     media: Media;
+    'saved-sectors': SavedSector;
+    'saved-reports': SavedReport;
+    'user-checklists': UserChecklist;
+    'report-requests': ReportRequest;
+    'news-sources': NewsSource;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -104,6 +109,11 @@ export interface Config {
     pages: PagesSelect<false> | PagesSelect<true>;
     'blog-posts': BlogPostsSelect<false> | BlogPostsSelect<true>;
     media: MediaSelect<false> | MediaSelect<true>;
+    'saved-sectors': SavedSectorsSelect<false> | SavedSectorsSelect<true>;
+    'saved-reports': SavedReportsSelect<false> | SavedReportsSelect<true>;
+    'user-checklists': UserChecklistsSelect<false> | UserChecklistsSelect<true>;
+    'report-requests': ReportRequestsSelect<false> | ReportRequestsSelect<true>;
+    'news-sources': NewsSourcesSelect<false> | NewsSourcesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -631,6 +641,135 @@ export interface BlogPost {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "saved-sectors".
+ */
+export interface SavedSector {
+  id: number;
+  user_id: string;
+  sector: number | BusinessSector;
+  saved_at: string;
+  /**
+   * Optional 200-char note the user attached to this bookmark.
+   */
+  note?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "saved-reports".
+ */
+export interface SavedReport {
+  id: number;
+  user_id: string;
+  report: number | Report;
+  saved_at: string;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-checklists".
+ */
+export interface UserChecklist {
+  id: number;
+  user_id: string;
+  sector: number | BusinessSector;
+  /**
+   * One row per checklist item this user is tracking.
+   */
+  items?:
+    | {
+        step_id: string;
+        completed?: boolean | null;
+        completed_at?: string | null;
+        note?: string | null;
+        id?: string | null;
+      }[]
+    | null;
+  /**
+   * Auto-computed from items[].completed.
+   */
+  progress_pct?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "report-requests".
+ */
+export interface ReportRequest {
+  id: number;
+  user_id: string;
+  report: number | Report;
+  amount_etb: number;
+  amount_usd?: number | null;
+  payment_method: 'telebirr' | 'cbe_birr';
+  /**
+   * Transaction reference number user provided.
+   */
+  payment_reference?: string | null;
+  /**
+   * Screenshot proof of the payment; PNG / JPEG / WebP up to 5MB.
+   */
+  payment_screenshot: number | Media;
+  status: 'pending' | 'verified' | 'rejected';
+  /**
+   * Visible to the user on their /dashboard/requests page.
+   */
+  admin_note?: string | null;
+  verified_by?: (number | null) | Admin;
+  verified_at?: string | null;
+  /**
+   * Set to +30 days when status flips to verified.
+   */
+  download_expires_at?: string | null;
+  /**
+   * Incremented on every successful download.
+   */
+  download_count?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "news-sources".
+ */
+export interface NewsSource {
+  id: number;
+  name: string;
+  type: 'news_site' | 'newspaper' | 'tv' | 'youtube' | 'telegram' | 'gov_portal' | 'economic_data';
+  url: string;
+  /**
+   * Telegram/YouTube handle without @ (e.g. tebekasamuel).
+   */
+  handle?: string | null;
+  category?: ('business' | 'policy' | 'finance' | 'sector_specific' | 'general') | null;
+  /**
+   * Optional — tie a Telegram channel to a specific MOR sector.
+   */
+  sector_hint?: (number | null) | BusinessSector;
+  logo?: (number | null) | Media;
+  description_en?: string | null;
+  description_am?: string | null;
+  /**
+   * Higher = shown earlier in the feed.
+   */
+  priority?: number | null;
+  is_active?: boolean | null;
+  /**
+   * Telegram only. If on, /dashboard/pulse will pull recent post previews from t.me/s/<handle> and cache for 30 min.
+   */
+  allow_scrape?: boolean | null;
+  /**
+   * Optional metadata for display.
+   */
+  subscribers?: number | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -712,6 +851,26 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'media';
         value: number | Media;
+      } | null)
+    | ({
+        relationTo: 'saved-sectors';
+        value: number | SavedSector;
+      } | null)
+    | ({
+        relationTo: 'saved-reports';
+        value: number | SavedReport;
+      } | null)
+    | ({
+        relationTo: 'user-checklists';
+        value: number | UserChecklist;
+      } | null)
+    | ({
+        relationTo: 'report-requests';
+        value: number | ReportRequest;
+      } | null)
+    | ({
+        relationTo: 'news-sources';
+        value: number | NewsSource;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1093,6 +1252,91 @@ export interface MediaSelect<T extends boolean = true> {
               filename?: T;
             };
       };
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "saved-sectors_select".
+ */
+export interface SavedSectorsSelect<T extends boolean = true> {
+  user_id?: T;
+  sector?: T;
+  saved_at?: T;
+  note?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "saved-reports_select".
+ */
+export interface SavedReportsSelect<T extends boolean = true> {
+  user_id?: T;
+  report?: T;
+  saved_at?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "user-checklists_select".
+ */
+export interface UserChecklistsSelect<T extends boolean = true> {
+  user_id?: T;
+  sector?: T;
+  items?:
+    | T
+    | {
+        step_id?: T;
+        completed?: T;
+        completed_at?: T;
+        note?: T;
+        id?: T;
+      };
+  progress_pct?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "report-requests_select".
+ */
+export interface ReportRequestsSelect<T extends boolean = true> {
+  user_id?: T;
+  report?: T;
+  amount_etb?: T;
+  amount_usd?: T;
+  payment_method?: T;
+  payment_reference?: T;
+  payment_screenshot?: T;
+  status?: T;
+  admin_note?: T;
+  verified_by?: T;
+  verified_at?: T;
+  download_expires_at?: T;
+  download_count?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "news-sources_select".
+ */
+export interface NewsSourcesSelect<T extends boolean = true> {
+  name?: T;
+  type?: T;
+  url?: T;
+  handle?: T;
+  category?: T;
+  sector_hint?: T;
+  logo?: T;
+  description_en?: T;
+  description_am?: T;
+  priority?: T;
+  is_active?: T;
+  allow_scrape?: T;
+  subscribers?: T;
+  updatedAt?: T;
+  createdAt?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
