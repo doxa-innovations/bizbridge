@@ -1,13 +1,11 @@
 import type { Metadata } from 'next'
-import Link from 'next/link'
 import { Check, Mail, MessageCircle, Sparkles } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { GridBackdrop } from '@/components/marketing/grid-backdrop'
-import { CONSULT_EMAIL, CONSULT_FORMSUBMIT, CONSULT_TELEGRAM } from '@/lib/flags'
+import { CONSULT_EMAIL, CONSULT_TELEGRAM } from '@/lib/flags'
+import { ConsultForm } from './consult-form'
 
 export const metadata: Metadata = {
   title: 'Book a consult',
@@ -15,14 +13,7 @@ export const metadata: Metadata = {
     'Talk it through — sector selection, business model sanity check, warm intros. One-off consult, no subscription.',
 }
 
-interface PageProps {
-  searchParams: Promise<{ sent?: string }>
-}
-
-export default async function ConsultPage({ searchParams }: PageProps) {
-  const sp = await searchParams
-  const sent = sp.sent === '1'
-
+export default function ConsultPage() {
   return (
     <div>
       <section className="relative overflow-hidden border-b border-border">
@@ -99,103 +90,7 @@ export default async function ConsultPage({ searchParams }: PageProps) {
           </div>
 
           <Card className="p-6 sm:p-8 lg:col-span-3">
-            {sent ? (
-              <div className="py-8 text-center">
-                <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-full bg-brand/15 text-brand">
-                  <Check className="h-6 w-6" />
-                </div>
-                <h2 className="mt-4 text-2xl font-semibold tracking-tightish">Message received</h2>
-                <p className="mx-auto mt-2 max-w-md text-sm text-ink-muted">
-                  We&apos;ll get back to you at the address you provided — usually within a day or
-                  two. If it&apos;s urgent, message on Telegram.
-                </p>
-                <div className="mt-6 flex flex-col justify-center gap-3 sm:flex-row">
-                  <Button asChild>
-                    <a href={CONSULT_TELEGRAM} target="_blank" rel="noreferrer">
-                      <MessageCircle className="h-4 w-4" /> Open Telegram
-                    </a>
-                  </Button>
-                  <Button asChild variant="secondary">
-                    <Link href="/sectors">Keep browsing sectors</Link>
-                  </Button>
-                </div>
-              </div>
-            ) : (
-              <>
-                <p className="text-xs uppercase tracking-wider text-brand">Or send a note</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-tightish">Tell us what you&apos;re working on</h2>
-                <p className="mt-2 text-sm text-ink-muted">
-                  A couple sentences is enough. We&apos;ll reply from {CONSULT_EMAIL}.
-                </p>
-                <form
-                  action={CONSULT_FORMSUBMIT}
-                  method="POST"
-                  className="mt-6 space-y-4"
-                >
-                  <input type="hidden" name="_subject" value="BizBridge consult request" />
-                  <input type="hidden" name="_captcha" value="false" />
-                  <input type="hidden" name="_template" value="table" />
-                  <input type="hidden" name="_next" value="/consult?sent=1" />
-
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div>
-                      <Label htmlFor="name">Name</Label>
-                      <Input id="name" name="name" required autoComplete="name" className="mt-1.5" />
-                    </div>
-                    <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        required
-                        autoComplete="email"
-                        className="mt-1.5"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="sector">Sector interest (optional)</Label>
-                    <Input
-                      id="sector"
-                      name="sector"
-                      placeholder="e.g. software company, design studio, cafe, tour operator…"
-                      className="mt-1.5"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="message">What are you working on?</Label>
-                    <textarea
-                      id="message"
-                      name="message"
-                      required
-                      rows={5}
-                      placeholder="Business idea, where you're stuck, what would help most."
-                      className="mt-1.5 flex w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="contact_pref">Preferred contact (optional)</Label>
-                    <Input
-                      id="contact_pref"
-                      name="contact_pref"
-                      placeholder="Telegram @handle, phone number, or leave blank for email"
-                      className="mt-1.5"
-                    />
-                  </div>
-
-                  <Button type="submit" size="lg" className="w-full sm:w-auto">
-                    Send message
-                  </Button>
-                  <p className="text-xs text-ink-faint">
-                    We&apos;ll never sell your details. Replies in a day or two.
-                  </p>
-                </form>
-              </>
-            )}
+            <ConsultForm />
           </Card>
         </div>
       </section>
