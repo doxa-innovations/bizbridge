@@ -1,12 +1,13 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowUpRight, Building, ExternalLink, LineChart, Newspaper, Radio, Send, Tv, Users } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Building, ExternalLink, LineChart, Newspaper, Radio, RadioTower, Send, Tv, Users } from 'lucide-react'
 import { requireUser } from '@/lib/require-user'
 import { tryPayload } from '@/lib/payload'
 import { fetchTelegramPreviewsBatch, type TelegramPreview } from '@/lib/telegram-scraper'
 import { getDashboardConfig } from '@/lib/dashboard-tailoring'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 
 export const metadata: Metadata = { title: 'Pulse' }
 export const revalidate = 300 // 5 min at the page level; scraper has its own 30-min cache per handle
@@ -70,6 +71,43 @@ export default async function PulsePage() {
   })
 
   const all = sources ?? []
+
+  // Empty state: DB unreachable OR admin hasn't seeded any news sources.
+  if (all.length === 0) {
+    return (
+      <div className="mx-auto max-w-2xl py-16">
+        <Card className="p-8">
+          <div className="flex items-start gap-3">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand/15 text-brand">
+              <RadioTower className="h-5 w-5" />
+            </span>
+            <div className="flex-1">
+              <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+                Pulse
+              </p>
+              <h1 className="mt-1 text-xl font-semibold tracking-tightish text-ink">
+                No sources published yet.
+              </h1>
+              <p className="mt-2 text-sm text-ink-muted">
+                Cheri hasn&apos;t added any Ethiopian business feeds yet, or we&apos;re
+                temporarily unable to reach the CMS. Try again in a minute.
+              </p>
+            </div>
+          </div>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Button asChild size="sm">
+              <Link href="/resources">
+                Browse official portals <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/dashboard">Back to dashboard</Link>
+            </Button>
+          </div>
+        </Card>
+      </div>
+    )
+  }
 
   // Fetch Telegram previews (opt-in per source via allow_scrape flag).
   const scrapeHandles = all
