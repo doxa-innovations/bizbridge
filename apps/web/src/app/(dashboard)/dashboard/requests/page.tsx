@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, Clock, FileText, ShieldCheck, XCircle } from 'lucide-react'
+import { ArrowRight, Clock, Download, FileText, ShieldCheck, XCircle } from 'lucide-react'
 import { requireUser } from '@/lib/require-user'
 import { tryPayload } from '@/lib/payload'
 import { Card } from '@/components/ui/card'
@@ -50,16 +50,26 @@ export default async function RequestsPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
-      <header>
-        <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">Requests</p>
-        <h1 className="mt-1.5 text-3xl font-semibold tracking-crisp text-ink sm:text-4xl">
-          Your report requests.
-        </h1>
-        <p className="mt-2 text-sm text-ink-muted">
-          When you request a report and upload payment proof, it lands here as
-          <em> pending</em>. An admin verifies against the Telebirr / CBE dashboard —
-          usually within a business day — and the download unlocks for 30 days.
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">Requests</p>
+          <h1 className="mt-1.5 text-3xl font-semibold tracking-crisp text-ink sm:text-4xl">
+            Your report requests.
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm text-ink-muted">
+            When you request a report and upload payment proof, it lands here as
+            <em> pending</em>. An admin verifies against the Telebirr / CBE dashboard —
+            usually within a business day — and the download unlocks for 30 days.
+          </p>
+        </div>
+        {rows.length > 0 ? (
+          <a
+            href="/api/export/requests"
+            className="inline-flex items-center gap-1.5 rounded-md border border-border/70 bg-surface px-3 py-1.5 text-xs text-ink-muted hover:border-brand/40 hover:text-ink"
+          >
+            <Download className="h-3.5 w-3.5" /> Export history
+          </a>
+        ) : null}
       </header>
 
       {rows.length === 0 ? (

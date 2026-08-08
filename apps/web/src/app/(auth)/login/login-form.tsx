@@ -1,14 +1,27 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signIn } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+/**
+ * Sanity-check the `?next=` param before we redirect to it. Rejects
+ * absolute URLs (open-redirect risk) and anything outside the app.
+ */
+function safeNext(raw: string | null): string {
+  if (!raw) return '/dashboard'
+  // Only allow same-origin absolute paths
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/dashboard'
+  return raw
+}
+
 export function LoginForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const next = safeNext(searchParams.get('next'))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -24,7 +37,7 @@ export function LoginForm() {
         setError(res.error.message ?? 'Login failed')
         return
       }
-      router.replace('/dashboard')
+      router.replace(next)
       router.refresh()
     } catch (err) {
       setError((err as Error).message ?? 'Unexpected error')

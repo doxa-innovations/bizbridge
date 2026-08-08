@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { signUp } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,8 +13,16 @@ const USER_TYPES = [
   { value: 'foreign_investor', label: 'Foreign investor' },
 ]
 
+function safeNext(raw: string | null): string {
+  if (!raw) return '/dashboard'
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '/dashboard'
+  return raw
+}
+
 export function SignupForm() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const next = safeNext(searchParams.get('next'))
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -41,7 +49,7 @@ export function SignupForm() {
         setError(res.error.message ?? 'Signup failed')
         return
       }
-      router.replace('/dashboard')
+      router.replace(next)
       router.refresh()
     } catch (err) {
       setError((err as Error).message ?? 'Unexpected error')

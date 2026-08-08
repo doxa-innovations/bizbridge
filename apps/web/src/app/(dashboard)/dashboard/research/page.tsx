@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, ArrowUpRight, Bookmark, FileText } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Bookmark, Download, FileText } from 'lucide-react'
 import { requireUser } from '@/lib/require-user'
 import { tryPayload } from '@/lib/payload'
 import { humanizeSectorName } from '@/lib/humanize-sector-name'
@@ -88,13 +88,23 @@ export default async function ResearchPage() {
       </header>
 
       <section>
-        <div className="mb-3 flex items-center justify-between">
+        <div className="mb-3 flex items-center justify-between gap-2">
           <h2 className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
             Saved sectors ({savedSectors.length})
           </h2>
-          <Link href="/sectors" className="text-xs text-ink-muted hover:text-ink">
-            Browse all →
-          </Link>
+          <div className="flex items-center gap-3">
+            {savedSectors.length > 0 ? (
+              <a
+                href="/api/export/saved-sectors"
+                className="inline-flex items-center gap-1 text-xs text-ink-muted hover:text-ink"
+              >
+                <Download className="h-3 w-3" /> Export CSV
+              </a>
+            ) : null}
+            <Link href="/sectors" className="text-xs text-ink-muted hover:text-ink">
+              Browse all →
+            </Link>
+          </div>
         </div>
         {savedSectors.length === 0 ? (
           <Card className="flex flex-col items-start gap-3 border-dashed p-6 sm:flex-row sm:items-center">

@@ -17,12 +17,14 @@ import {
 } from 'lucide-react'
 import { tryPayload, getPayloadClient } from '@/lib/payload'
 import { humanizeSectorName } from '@/lib/humanize-sector-name'
+import { getCurrentUser } from '@/lib/auth-server'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { GeometricIcon } from '@/components/marketing/geometric-icon'
 import { StatCard } from '@/components/marketing/stat-card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { BookmarkButton } from '@/components/sectors/bookmark-button'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -79,7 +81,7 @@ async function fetchSectorHead(slug: string) {
 export default async function SectorDetailPage({ params }: PageProps) {
   const { slug } = await params
 
-  const sector = await fetchSectorHead(slug)
+  const [sector, currentUser] = await Promise.all([fetchSectorHead(slug), getCurrentUser()])
 
   if (!sector) {
     try {
@@ -104,6 +106,28 @@ export default async function SectorDetailPage({ params }: PageProps) {
   const category = typeof sector.category === 'object' && sector.category ? sector.category : null
   const categoryId =
     typeof sector.category === 'object' && sector.category ? sector.category.id : sector.category
+
+  // Check whether this signed-in user has already bookmarked the sector.
+  let alreadySaved = false
+  if (currentUser) {
+    try {
+      const payload = await getPayloadClient()
+      const res = await payload.find({
+        collection: 'saved-sectors',
+        where: {
+          and: [
+            { user_id: { equals: currentUser.id } },
+            { sector: { equals: sector.id } },
+          ],
+        },
+        limit: 1,
+        overrideAccess: true,
+      })
+      alreadySaved = res.docs.length > 0
+    } catch {
+      // Non-fatal — button just defaults to unsaved.
+    }
+  }
 
   return (
     <article>
@@ -170,6 +194,12 @@ export default async function SectorDetailPage({ params }: PageProps) {
                 <Button asChild variant="ghost">
                   <Link href={`/compare?add=${sector.slug}`}>Compare</Link>
                 </Button>
+                <BookmarkButton
+                  sectorId={sector.id}
+                  initialSaved={alreadySaved}
+                  guest={!currentUser}
+                  returnTo={`/sectors/${sector.slug}`}
+                />
               </div>
             </div>
           </div>
