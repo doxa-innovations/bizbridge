@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Suspense } from 'react'
 import {
   ArrowRight,
   Calculator,
@@ -21,6 +22,7 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { GeometricIcon } from '@/components/marketing/geometric-icon'
 import { StatCard } from '@/components/marketing/stat-card'
+import { Skeleton } from '@/components/ui/skeleton'
 
 export const revalidate = 3600
 export const dynamicParams = true
@@ -62,80 +64,24 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-export default async function SectorDetailPage({ params }: PageProps) {
-  const { slug } = await params
-
-  const data = await tryPayload(async (payload) => {
-    const sectorRes = await payload.find({
+async function fetchSectorHead(slug: string) {
+  return tryPayload(async (payload) => {
+    const res = await payload.find({
       collection: 'business-sectors',
       where: { slug: { equals: slug } },
       limit: 1,
       depth: 1,
     })
-    const sector = sectorRes.docs[0]
-    if (!sector) return null
-
-    const [licenses, approvals, costs, steps, documents, certificates, related] = await Promise.all([
-      payload.find({
-        collection: 'sector-license-requirements',
-        where: { sector: { equals: sector.id } },
-        limit: 50,
-      }),
-      payload.find({
-        collection: 'sector-approvals',
-        where: { sector: { equals: sector.id } },
-        sort: 'sequence_order',
-        limit: 50,
-      }),
-      payload.find({
-        collection: 'sector-costs',
-        where: { sector: { equals: sector.id } },
-        limit: 50,
-      }),
-      payload.find({
-        collection: 'sector-steps',
-        where: { sector: { equals: sector.id } },
-        sort: 'step_number',
-        limit: 100,
-      }),
-      payload.find({
-        collection: 'sector-documents',
-        where: { sector: { equals: sector.id } },
-        limit: 50,
-      }),
-      payload.find({
-        collection: 'sector-competency-certificates',
-        where: { sector: { equals: sector.id } },
-        limit: 50,
-      }),
-      payload.find({
-        collection: 'business-sectors',
-        where: {
-          category: {
-            equals:
-              typeof sector.category === 'object' && sector.category ? sector.category.id : sector.category,
-          },
-          id: { not_equals: sector.id },
-          is_active: { equals: true },
-        },
-        limit: 4,
-        depth: 0,
-      }),
-    ])
-
-    return {
-      sector,
-      licenses: licenses.docs,
-      approvals: approvals.docs,
-      costs: costs.docs,
-      steps: steps.docs,
-      documents: documents.docs,
-      certificates: certificates.docs,
-      related: related.docs,
-    }
+    return res.docs[0] ?? null
   })
+}
 
-  if (!data) {
+export default async function SectorDetailPage({ params }: PageProps) {
+  const { slug } = await params
+
+  const sector = await fetchSectorHead(slug)
+
+  if (!sector) {
     try {
       const payload = await getPayloadClient()
       const res = await payload.find({
@@ -155,19 +101,13 @@ export default async function SectorDetailPage({ params }: PageProps) {
     notFound()
   }
 
-  const { sector, licenses, approvals, costs, steps, documents, certificates, related } = data
   const category = typeof sector.category === 'object' && sector.category ? sector.category : null
-
-  // Aggregate stats
-  const totalEstimatedDays = approvals.reduce(
-    (acc, a) => acc + ((a.processing_days_max as number) ?? 0),
-    0,
-  )
-  const officialFeeCount = costs.filter((c) => Boolean(c.is_official_fee)).length
+  const categoryId =
+    typeof sector.category === 'object' && sector.category ? sector.category.id : sector.category
 
   return (
     <article>
-      {/* HERO */}
+      {/* HERO — renders instantly from the sector doc alone */}
       <section className="border-b border-border bg-surface">
         <div className="container-page py-10">
           <nav
@@ -212,11 +152,7 @@ export default async function SectorDetailPage({ params }: PageProps) {
 
               <div className="mt-6 flex flex-wrap gap-3">
                 <Button asChild size="lg">
-                  <a
-                    href={`https://etrade.gov.et`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
+                  <a href={`https://etrade.gov.et`} target="_blank" rel="noreferrer">
                     <Landmark className="h-4 w-4" /> Reserve name on eTrade{' '}
                     <ArrowRight className="h-4 w-4" />
                   </a>
@@ -240,7 +176,183 @@ export default async function SectorDetailPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* STATS */}
+      {/* PERMITTED OPERATIONS — also renders instantly (data is on the sector doc) */}
+      {Array.isArray(sector.permitted_operations_am) &&
+      sector.permitted_operations_am.length > 0 ? (
+        <section className="container-page pt-10">
+          <PermittedOperations
+            operationsAm={sector.permitted_operations_am}
+            operationsEn={
+              Array.isArray(sector.permitted_operations_en)
+                ? sector.permitted_operations_en
+                : []
+            }
+            legacyCodes={
+              Array.isArray(sector.legacy_codes) ? sector.legacy_codes : []
+            }
+          />
+        </section>
+      ) : null}
+
+      {/* EVERYTHING ELSE — streams in via Suspense so the shell above renders fast */}
+      <Suspense fallback={<SectorSectionsSkeleton />}>
+        <SectorSections
+          sectorId={sector.id}
+          sectorSlug={sector.slug}
+          categoryId={categoryId as string | number | null}
+          hasPermittedOps={
+            Array.isArray(sector.permitted_operations_am) &&
+            sector.permitted_operations_am.length > 0
+          }
+        />
+      </Suspense>
+    </article>
+  )
+}
+
+/** Renders the permitted-operations card block. Pure server component, no data fetch. */
+function PermittedOperations({
+  operationsAm,
+  operationsEn,
+  legacyCodes,
+}: {
+  operationsAm: Array<{ id?: string | number | null; text?: string | null }>
+  operationsEn: Array<{ id?: string | number | null; text?: string | null }>
+  legacyCodes: Array<{ code?: string | null }>
+}) {
+  const hasEn = operationsEn.some((o) => o?.text && o.text.length > 0)
+  return (
+    <SectorSection
+      id="operations"
+      icon={<ShieldCheck />}
+      title="Permitted operations under this license"
+    >
+      <p className="mb-4 text-sm text-ink-muted">
+        What a licence holder in this sector is allowed to do — source:{' '}
+        <span className="font-mono text-[12px]">MoR Directive 17/2011 Explanation Manual</span>.
+        Amharic is the primary source of truth.
+      </p>
+      {!hasEn ? (
+        <p className="mb-4 rounded-lg border border-dashed border-border/70 bg-surface/40 p-3 font-mono text-[11px] text-ink-muted">
+          English translation pending for this sector.{' '}
+          <Link href="/consult" className="text-brand hover:underline">
+            Contribute a translation →
+          </Link>
+        </p>
+      ) : null}
+      <div className="grid gap-3">
+        {operationsAm.map((op, i) => {
+          const enOp = operationsEn[i]
+          return (
+            <Card key={op.id ?? i} className="p-5">
+              <div className="flex items-start gap-3">
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-brand/40 bg-brand/10 font-mono text-[10px] text-brand">
+                  {i + 1}
+                </span>
+                <div className="flex-1 space-y-3">
+                  <p className="font-amharic text-[15px] leading-relaxed text-ink">{op.text}</p>
+                  {enOp?.text ? (
+                    <p className="border-t border-border pt-3 text-sm leading-relaxed text-ink-muted">
+                      {enOp.text}
+                    </p>
+                  ) : null}
+                </div>
+              </div>
+            </Card>
+          )
+        })}
+      </div>
+      {legacyCodes.length > 0 ? (
+        <p className="mt-4 font-mono text-[11px] text-ink-faint">
+          <span className="uppercase tracking-[0.14em]">Legacy codes:</span>{' '}
+          <span>{legacyCodes.map((c) => c.code).join(', ')}</span>
+        </p>
+      ) : null}
+    </SectorSection>
+  )
+}
+
+/** Streamed block: stats + sections + sidebar + related. */
+async function SectorSections({
+  sectorId,
+  sectorSlug,
+  categoryId,
+  hasPermittedOps,
+}: {
+  sectorId: string | number
+  sectorSlug: string
+  categoryId: string | number | null
+  hasPermittedOps: boolean
+}) {
+  const data = await tryPayload(async (payload) => {
+    const [licenses, approvals, costs, steps, documents, certificates, related] = await Promise.all([
+      payload.find({
+        collection: 'sector-license-requirements',
+        where: { sector: { equals: sectorId } },
+        limit: 50,
+      }),
+      payload.find({
+        collection: 'sector-approvals',
+        where: { sector: { equals: sectorId } },
+        sort: 'sequence_order',
+        limit: 50,
+      }),
+      payload.find({
+        collection: 'sector-costs',
+        where: { sector: { equals: sectorId } },
+        limit: 50,
+      }),
+      payload.find({
+        collection: 'sector-steps',
+        where: { sector: { equals: sectorId } },
+        sort: 'step_number',
+        limit: 100,
+      }),
+      payload.find({
+        collection: 'sector-documents',
+        where: { sector: { equals: sectorId } },
+        limit: 50,
+      }),
+      payload.find({
+        collection: 'sector-competency-certificates',
+        where: { sector: { equals: sectorId } },
+        limit: 50,
+      }),
+      categoryId
+        ? payload.find({
+            collection: 'business-sectors',
+            where: {
+              category: { equals: categoryId },
+              id: { not_equals: sectorId },
+              is_active: { equals: true },
+            },
+            limit: 4,
+            depth: 0,
+          })
+        : Promise.resolve({ docs: [] as never[] }),
+    ])
+    return {
+      licenses: licenses.docs,
+      approvals: approvals.docs,
+      costs: costs.docs,
+      steps: steps.docs,
+      documents: documents.docs,
+      certificates: certificates.docs,
+      related: related.docs,
+    }
+  })
+
+  if (!data) return null
+
+  const { licenses, approvals, costs, steps, documents, certificates, related } = data
+  const totalEstimatedDays = approvals.reduce(
+    (acc, a) => acc + ((a.processing_days_max as number) ?? 0),
+    0,
+  )
+  const officialFeeCount = costs.filter((c) => Boolean(c.is_official_fee)).length
+
+  return (
+    <>
       <section className="container-page py-10">
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard
@@ -266,78 +378,9 @@ export default async function SectorDetailPage({ params }: PageProps) {
         </div>
       </section>
 
-      {/* CONTENT GRID */}
       <section className="container-page pb-20">
         <div className="grid gap-10 lg:grid-cols-[1fr_240px]">
           <main className="space-y-12 min-w-0">
-            {Array.isArray(sector.permitted_operations_am) &&
-            sector.permitted_operations_am.length > 0 ? (
-              <SectorSection
-                id="operations"
-                icon={<ShieldCheck />}
-                title="Permitted operations under this license"
-              >
-                {(() => {
-                  const enOps = Array.isArray(sector.permitted_operations_en)
-                    ? sector.permitted_operations_en
-                    : []
-                  const hasEn = enOps.some((o) => o?.text && o.text.length > 0)
-                  return (
-                    <>
-                      <p className="mb-4 text-sm text-ink-muted">
-                        What a licence holder in this sector is allowed to do — source:{' '}
-                        <span className="font-mono text-[12px]">
-                          MoR Directive 17/2011 Explanation Manual
-                        </span>
-                        . Amharic is the primary source of truth.
-                      </p>
-                      {!hasEn ? (
-                        <p className="mb-4 rounded-lg border border-dashed border-border/70 bg-surface/40 p-3 font-mono text-[11px] text-ink-muted">
-                          English translation pending for this sector.{' '}
-                          <Link
-                            href="/consult"
-                            className="text-brand hover:underline"
-                          >
-                            Contribute a translation →
-                          </Link>
-                        </p>
-                      ) : null}
-                      <div className="grid gap-3">
-                        {sector.permitted_operations_am.map((op, i) => {
-                          const enOp = enOps[i]
-                          return (
-                            <Card key={op.id ?? i} className="p-5">
-                              <div className="flex items-start gap-3">
-                                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-brand/40 bg-brand/10 font-mono text-[10px] text-brand">
-                                  {i + 1}
-                                </span>
-                                <div className="flex-1 space-y-3">
-                                  <p className="font-amharic text-[15px] leading-relaxed text-ink">
-                                    {op.text}
-                                  </p>
-                                  {enOp?.text ? (
-                                    <p className="border-t border-border pt-3 text-sm leading-relaxed text-ink-muted">
-                                      {enOp.text}
-                                    </p>
-                                  ) : null}
-                                </div>
-                              </div>
-                            </Card>
-                          )
-                        })}
-                      </div>
-                      {Array.isArray(sector.legacy_codes) && sector.legacy_codes.length > 0 ? (
-                        <p className="mt-4 font-mono text-[11px] text-ink-faint">
-                          <span className="uppercase tracking-[0.14em]">Legacy codes:</span>{' '}
-                          <span>{sector.legacy_codes.map((c) => c.code).join(', ')}</span>
-                        </p>
-                      ) : null}
-                    </>
-                  )
-                })()}
-              </SectorSection>
-            ) : null}
-
             <SectorSection id="licenses" icon={<ScrollText />} title="Licenses required">
               {licenses.length > 0 ? (
                 <div className="grid gap-3">
@@ -384,39 +427,39 @@ export default async function SectorDetailPage({ params }: PageProps) {
 
             <SectorSection id="costs" icon={<Calculator />} title="Cost breakdown">
               {costs.length > 0 ? (
-                  <Card className="overflow-hidden">
-                    <table className="w-full text-sm">
-                      <thead className="bg-surface-2 text-xs uppercase tracking-wider text-ink-faint">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-medium">Item</th>
-                          <th className="px-4 py-3 text-right font-medium">ETB</th>
-                          <th className="px-4 py-3 text-right font-medium">USD</th>
-                          <th className="px-4 py-3 text-right font-medium">Source</th>
+                <Card className="overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-surface-2 text-xs uppercase tracking-wider text-ink-faint">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-medium">Item</th>
+                        <th className="px-4 py-3 text-right font-medium">ETB</th>
+                        <th className="px-4 py-3 text-right font-medium">USD</th>
+                        <th className="px-4 py-3 text-right font-medium">Source</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {costs.map((c) => (
+                        <tr key={c.id}>
+                          <td className="px-4 py-3 text-ink">{c.cost_item}</td>
+                          <td className="px-4 py-3 text-right font-mono text-ink-muted">
+                            {formatRange(c.amount_birr_min, c.amount_birr_max)}
+                          </td>
+                          <td className="px-4 py-3 text-right font-mono text-ink-muted">
+                            {formatRange(c.amount_usd_min, c.amount_usd_max)}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <Badge variant={c.is_official_fee ? 'brand' : 'outline'}>
+                              {c.is_official_fee ? 'Official' : 'Estimate'}
+                            </Badge>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-border">
-                        {costs.map((c) => (
-                          <tr key={c.id}>
-                            <td className="px-4 py-3 text-ink">{c.cost_item}</td>
-                            <td className="px-4 py-3 text-right font-mono text-ink-muted">
-                              {formatRange(c.amount_birr_min, c.amount_birr_max)}
-                            </td>
-                            <td className="px-4 py-3 text-right font-mono text-ink-muted">
-                              {formatRange(c.amount_usd_min, c.amount_usd_max)}
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <Badge variant={c.is_official_fee ? 'brand' : 'outline'}>
-                                {c.is_official_fee ? 'Official' : 'Estimate'}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </Card>
-                ) : (
-                  <p className="text-sm text-ink-muted">Fee schedule pending data collection.</p>
-                )}
+                      ))}
+                    </tbody>
+                  </table>
+                </Card>
+              ) : (
+                <p className="text-sm text-ink-muted">Fee schedule pending data collection.</p>
+              )}
             </SectorSection>
 
             <SectorSection id="steps" icon={<ListChecks />} title="Setup process">
@@ -446,48 +489,46 @@ export default async function SectorDetailPage({ params }: PageProps) {
                 title="Certificates of competency"
               >
                 <div className="grid gap-3">
-                    {certificates.map((c) => (
-                      <Card key={c.id} className="p-5">
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="text-sm font-semibold text-ink">
-                            {c.certificate_name}
-                          </p>
-                          <Badge variant={c.is_mandatory ? 'warn' : 'default'}>
-                            {c.is_mandatory ? 'Mandatory' : 'Optional'}
-                          </Badge>
-                        </div>
-                        <p className="mt-1 text-sm text-ink-muted">
-                          From <span className="font-medium text-ink">{c.issuing_body}</span>
-                        </p>
-                        {c.description ? (
-                          <p className="mt-2 text-sm text-ink-muted">{c.description}</p>
-                        ) : null}
-                      </Card>
-                    ))}
-                  </div>
+                  {certificates.map((c) => (
+                    <Card key={c.id} className="p-5">
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="text-sm font-semibold text-ink">{c.certificate_name}</p>
+                        <Badge variant={c.is_mandatory ? 'warn' : 'default'}>
+                          {c.is_mandatory ? 'Mandatory' : 'Optional'}
+                        </Badge>
+                      </div>
+                      <p className="mt-1 text-sm text-ink-muted">
+                        From <span className="font-medium text-ink">{c.issuing_body}</span>
+                      </p>
+                      {c.description ? (
+                        <p className="mt-2 text-sm text-ink-muted">{c.description}</p>
+                      ) : null}
+                    </Card>
+                  ))}
+                </div>
               </SectorSection>
             ) : null}
 
             {documents.length > 0 ? (
               <SectorSection id="documents" icon={<FileText />} title="Document templates">
                 <div className="grid gap-2">
-                    {documents.map((d) => (
-                      <Card key={d.id} className="flex items-center justify-between gap-3 p-4">
-                        <div className="flex items-center gap-3">
-                          <span className="grid h-9 w-9 place-items-center rounded-md bg-surface-2 text-ink-muted">
-                            <FileText className="h-4 w-4" />
-                          </span>
-                          <div>
-                            <p className="text-sm font-medium text-ink">{d.title}</p>
-                            <p className="text-xs text-ink-faint">{d.file_type?.toUpperCase()}</p>
-                          </div>
+                  {documents.map((d) => (
+                    <Card key={d.id} className="flex items-center justify-between gap-3 p-4">
+                      <div className="flex items-center gap-3">
+                        <span className="grid h-9 w-9 place-items-center rounded-md bg-surface-2 text-ink-muted">
+                          <FileText className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <p className="text-sm font-medium text-ink">{d.title}</p>
+                          <p className="text-xs text-ink-faint">{d.file_type?.toUpperCase()}</p>
                         </div>
-                        <Button size="sm" variant="ghost">
-                          Download
-                        </Button>
-                      </Card>
-                    ))}
-                  </div>
+                      </div>
+                      <Button size="sm" variant="ghost">
+                        Download
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
               </SectorSection>
             ) : null}
 
@@ -517,8 +558,7 @@ export default async function SectorDetailPage({ params }: PageProps) {
               <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-ink-faint">
                 On this page
               </p>
-              {Array.isArray(sector.permitted_operations_am) &&
-              sector.permitted_operations_am.length > 0 ? (
+              {hasPermittedOps ? (
                 <TocLink href="#operations">Permitted operations</TocLink>
               ) : null}
               <TocLink href="#licenses">Licenses</TocLink>
@@ -553,7 +593,51 @@ export default async function SectorDetailPage({ params }: PageProps) {
           </div>
         ) : null}
       </section>
-    </article>
+    </>
+  )
+}
+
+function SectorSectionsSkeleton() {
+  return (
+    <>
+      <section className="container-page py-10">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="rounded-lg border border-border bg-surface p-5">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="mt-3 h-7 w-20" />
+              <Skeleton className="mt-2 h-3 w-32" />
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="container-page pb-20">
+        <div className="grid gap-10 lg:grid-cols-[1fr_240px]">
+          <main className="space-y-12 min-w-0">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i}>
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="mt-2 h-8 w-2/3" />
+                <div className="mt-6 space-y-3">
+                  <Skeleton className="h-16 w-full rounded-lg" />
+                  <Skeleton className="h-16 w-full rounded-lg" />
+                  <Skeleton className="h-16 w-full rounded-lg" />
+                </div>
+              </div>
+            ))}
+          </main>
+          <aside className="hidden lg:block">
+            <div className="sticky top-24 space-y-2 border-l border-border pl-4">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-28" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+          </aside>
+        </div>
+      </section>
+    </>
   )
 }
 
