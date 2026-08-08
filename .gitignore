@@ -16,6 +16,9 @@ build/
 .env.*.local
 !.env.example
 
+# deploy platforms
+.vercel/
+
 # logs
 *.log
 npm-debug.log*

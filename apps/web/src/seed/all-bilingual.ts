@@ -5,11 +5,11 @@
  * from the Amharic text (embedded 5-digit MOR codes that leaked in from the
  * adjacent column during PDF extraction).
  *
- * English translations are NOT populated here — the 27 hand-curated ones from
- * pilot-bilingual.ts are the source of truth. This script explicitly does not
- * overwrite `permitted_operations_en` when it's already populated. Sectors
- * without an English translation render with a "translation pending" note on
- * the detail page.
+ * English translations are pulled from the operations_en array on each entry
+ * in sector-explanations.json (populated by scripts/apply-translations.py).
+ * If operations_en is empty or its length doesn't match operations_am, we
+ * leave the sector's permitted_operations_en untouched so the pilot-bilingual
+ * hand-curated translations (or a "translation pending" note) stay in place.
  *
  *   pnpm seed:all-bilingual
  */
@@ -38,6 +38,7 @@ type Explanation = {
   name_am: string
   legacy_codes: string[]
   operations_am: string[]
+  operations_en?: string[]
 }
 
 // Strip 5-digit MOR code numbers that bled into the operations column from
@@ -69,6 +70,20 @@ async function chunkedMap<T, R>(
 }
 
 async function main() {
+  // Neon's pooler occasionally drops idle Postgres connections mid-seed. The
+  // per-row retry below handles this cleanly, but the underlying pg Client
+  // emits an 'error' event that crashes the process if unhandled. Swallow it
+  // here — the retry loop will re-establish a fresh connection on the next
+  // attempt.
+  process.on('uncaughtException', (err) => {
+    if (/Connection|ETIMEDOUT|ECONNRESET|terminated/i.test(err.message)) {
+      console.warn('  · swallowed pool error:', err.message.slice(0, 100))
+      return
+    }
+    console.error('uncaughtException:', err)
+    process.exit(1)
+  })
+
   console.log('Booting Payload…')
   const payload = await getPayload({ config: await config })
 
@@ -84,6 +99,7 @@ async function main() {
       name_am: string
       legacy_codes: string[]
       operations_am: string[]
+      operations_en?: string[]
     }>
   }).recovered) {
     if (!byCode[r.original_code]) {
@@ -93,6 +109,7 @@ async function main() {
         name_am: r.name_am,
         legacy_codes: r.legacy_codes,
         operations_am: r.operations_am,
+        operations_en: r.operations_en,
       }
     }
   }
@@ -149,7 +166,17 @@ async function main() {
         patch.permitted_operations_am = cleanedOps.map((text) => ({ text }))
       }
 
-      // English operations — DO NOT touch (leave whatever pilot-bilingual set).
+      // English operations from operations_en array — only apply when every
+      // slot is populated AND length matches the (cleaned) Amharic. This
+      // preserves the pilot-bilingual hand-curated translations for the 27
+      // pilot sectors when their operations_en is empty in the JSON.
+      const opsEn = entry.operations_en ?? []
+      if (
+        opsEn.length === cleanedOps.length &&
+        opsEn.every((s) => typeof s === 'string' && s.trim().length > 0)
+      ) {
+        patch.permitted_operations_en = opsEn.map((text) => ({ text: text.trim() }))
+      }
 
       if (Object.keys(patch).length === 0) {
         skipped += 1
@@ -159,20 +186,40 @@ async function main() {
     })
     .filter((t): t is { sector: (typeof all.docs)[number]; patch: Record<string, unknown> } => Boolean(t))
 
-  console.log(`Writing ${tasks.length} updates in parallel chunks of 15…`)
+  console.log(`Writing ${tasks.length} updates in parallel chunks of 3…`)
 
-  await chunkedMap(tasks, 15, async ({ sector, patch }) => {
-    try {
-      await payload.update({
-        collection: 'business-sectors',
-        id: sector.id,
-        data: patch,
-      })
+  async function updateWithRetry(sector: (typeof tasks)[number]['sector'], patch: Record<string, unknown>) {
+    const maxAttempts = 4
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        await payload.update({
+          collection: 'business-sectors',
+          id: sector.id,
+          data: patch,
+        })
+        return true
+      } catch (err) {
+        const message = (err as Error).message
+        const retriable = /Connection|ETIMEDOUT|ECONNRESET|terminated|read ECONNRESET/i.test(message)
+        if (!retriable || attempt === maxAttempts) {
+          console.error(`  ! ${sector.mor_code} (attempt ${attempt}/${maxAttempts}):`, message)
+          return false
+        }
+        const backoffMs = 500 * attempt * attempt
+        console.warn(`  · ${sector.mor_code} retry ${attempt} in ${backoffMs}ms — ${message.slice(0, 80)}`)
+        await new Promise((r) => setTimeout(r, backoffMs))
+      }
+    }
+    return false
+  }
+
+  await chunkedMap(tasks, 3, async ({ sector, patch }) => {
+    const ok = await updateWithRetry(sector, patch)
+    if (ok) {
       updated += 1
       if (updated % 50 === 0) console.log(`  · ${updated} sectors updated…`)
-    } catch (err) {
+    } else {
       failed += 1
-      console.error(`  ! ${sector.mor_code}`, (err as Error).message)
     }
   })
 
