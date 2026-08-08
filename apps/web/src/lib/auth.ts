@@ -44,7 +44,18 @@ export const auth = betterAuth({
       country: { type: 'string', required: false },
     },
   },
-  trustedOrigins: [
-    process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000',
-  ],
+  // Trust every origin the app might legitimately be served from. Reading a
+  // comma-separated TRUSTED_ORIGINS env lets ops add hostnames without a code
+  // deploy; NEXT_PUBLIC_APP_URL is kept as a fallback for backwards compat.
+  trustedOrigins: Array.from(
+    new Set(
+      [
+        ...(process.env.TRUSTED_ORIGINS?.split(',') ?? []),
+        process.env.NEXT_PUBLIC_APP_URL,
+        'http://localhost:3000',
+      ]
+        .map((s) => s?.trim())
+        .filter((s): s is string => Boolean(s)),
+    ),
+  ),
 })
