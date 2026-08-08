@@ -16,44 +16,67 @@ type Sector = {
 
 type Tier = {
   key: string
-  min_usd: number
-  max_usd: number
+  min_etb: number
+  max_etb: number
   label: string
   headline: string
   vibe: string
   sectors: Sector[]
 }
 
-const ETB_PER_USD = 55 // approximate — client-side only, this is not fx-accurate
+// Approximate FX for display only. Post-2024-float official rate has been
+// climbing; 140 is a conservative mid-2026 benchmark. Curb rate runs higher.
+const ETB_PER_USD = 140
 
-function tierForUsd(amount: number, tiers: Tier[]): Tier {
+function tierForEtb(amount: number, tiers: Tier[]): Tier {
   for (const t of tiers) {
-    if (amount >= t.min_usd && amount < t.max_usd) return t
+    if (amount >= t.min_etb && amount < t.max_etb) return t
   }
   return tiers[tiers.length - 1]!
 }
 
+function formatEtb(n: number) {
+  if (n >= 1_000_000) return `ETB ${(n / 1_000_000).toFixed(n >= 10_000_000 ? 0 : 1)}M`
+  if (n >= 1_000) return `ETB ${(n / 1_000).toFixed(0)}k`
+  return `ETB ${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+}
+function formatEtbFull(n: number) {
+  return `ETB ${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
+}
 function formatUsd(n: number) {
   return n.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 }
-function formatEtb(n: number) {
-  return `ETB ${n.toLocaleString('en-US', { maximumFractionDigits: 0 })}`
-}
 
 const PRESETS = [
-  { label: '$5k', usd: 5_000 },
-  { label: '$25k', usd: 25_000 },
-  { label: '$100k', usd: 100_000 },
-  { label: '$250k', usd: 250_000 },
-  { label: '$1M', usd: 1_000_000 },
+  { label: 'ETB 30k', etb: 30_000 },
+  { label: 'ETB 100k', etb: 100_000 },
+  { label: 'ETB 500k', etb: 500_000 },
+  { label: 'ETB 2M', etb: 2_000_000 },
+  { label: 'ETB 15M', etb: 15_000_000 },
+  { label: 'ETB 150M', etb: 150_000_000 },
 ]
 
-export function SuggestClient({ tiers }: { tiers: Tier[] }) {
-  const [amountUsd, setAmountUsd] = useState<number>(25_000)
-  const [currency, setCurrency] = useState<'USD' | 'ETB'>('USD')
+const SLIDER_MIN = 30_000
+const SLIDER_MAX = 500_000_000
 
-  const tier = useMemo(() => tierForUsd(amountUsd, tiers), [amountUsd, tiers])
-  const displayAmount = currency === 'USD' ? amountUsd : amountUsd * ETB_PER_USD
+// Log-scale slider so tiny amounts get room without dominating the track.
+function sliderToEtb(v: number): number {
+  const min = Math.log(SLIDER_MIN)
+  const max = Math.log(SLIDER_MAX)
+  return Math.round(Math.exp(min + (max - min) * (v / 1000)) / 1000) * 1000
+}
+function etbToSlider(etb: number): number {
+  const min = Math.log(SLIDER_MIN)
+  const max = Math.log(SLIDER_MAX)
+  return Math.round(((Math.log(etb) - min) / (max - min)) * 1000)
+}
+
+export function SuggestClient({ tiers }: { tiers: Tier[] }) {
+  const [amountEtb, setAmountEtb] = useState<number>(300_000)
+  const [currency, setCurrency] = useState<'ETB' | 'USD'>('ETB')
+
+  const tier = useMemo(() => tierForEtb(amountEtb, tiers), [amountEtb, tiers])
+  const usdEquivalent = amountEtb / ETB_PER_USD
 
   return (
     <section className="container-page pt-12 pb-14 sm:pt-16">
@@ -65,27 +88,16 @@ export function SuggestClient({ tiers }: { tiers: Tier[] }) {
               your capital
             </p>
             <p className="mt-2 text-4xl font-semibold tracking-crisp text-ink sm:text-5xl">
-              {currency === 'USD' ? formatUsd(displayAmount) : formatEtb(displayAmount)}
+              {currency === 'ETB' ? formatEtbFull(amountEtb) : formatUsd(usdEquivalent)}
             </p>
             <p className="mt-1 text-sm text-ink-muted">
-              {currency === 'USD'
-                ? `≈ ${formatEtb(amountUsd * ETB_PER_USD)}`
-                : `≈ ${formatUsd(amountUsd)}`}
+              {currency === 'ETB'
+                ? `≈ ${formatUsd(usdEquivalent)} at ETB ${ETB_PER_USD}/$`
+                : `≈ ${formatEtbFull(amountEtb)}`}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setCurrency('USD')}
-              className={`rounded-md border px-2.5 py-1 font-mono text-[11px] transition-colors ${
-                currency === 'USD'
-                  ? 'border-brand/60 bg-brand/10 text-ink'
-                  : 'border-border/70 bg-surface text-ink-muted hover:text-ink'
-              }`}
-            >
-              USD
-            </button>
             <button
               type="button"
               onClick={() => setCurrency('ETB')}
@@ -97,34 +109,45 @@ export function SuggestClient({ tiers }: { tiers: Tier[] }) {
             >
               ETB
             </button>
+            <button
+              type="button"
+              onClick={() => setCurrency('USD')}
+              className={`rounded-md border px-2.5 py-1 font-mono text-[11px] transition-colors ${
+                currency === 'USD'
+                  ? 'border-brand/60 bg-brand/10 text-ink'
+                  : 'border-border/70 bg-surface text-ink-muted hover:text-ink'
+              }`}
+            >
+              USD
+            </button>
           </div>
         </div>
 
         <div className="mt-6">
           <input
             type="range"
-            min="1000"
-            max="5000000"
-            step="1000"
-            value={amountUsd}
-            onChange={(e) => setAmountUsd(Number(e.target.value))}
+            min={0}
+            max={1000}
+            step={1}
+            value={etbToSlider(amountEtb)}
+            onChange={(e) => setAmountEtb(sliderToEtb(Number(e.target.value)))}
             className="w-full accent-brand"
-            aria-label="Starting capital in USD"
+            aria-label="Starting capital in ETB"
           />
           <div className="mt-1 flex justify-between font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
-            <span>$1k</span>
-            <span>$5M+</span>
+            <span>ETB 30k</span>
+            <span>ETB 500M+</span>
           </div>
         </div>
 
         <div className="mt-5 flex flex-wrap gap-2">
           {PRESETS.map((p) => (
             <button
-              key={p.usd}
+              key={p.etb}
               type="button"
-              onClick={() => setAmountUsd(p.usd)}
+              onClick={() => setAmountEtb(p.etb)}
               className={`rounded-md border px-3 py-1.5 font-mono text-[11px] transition-colors ${
-                amountUsd === p.usd
+                amountEtb === p.etb
                   ? 'border-brand/60 bg-brand/10 text-ink'
                   : 'border-border/70 bg-surface text-ink-muted hover:text-ink'
               }`}
@@ -139,7 +162,8 @@ export function SuggestClient({ tiers }: { tiers: Tier[] }) {
       <div className="mt-8 flex flex-wrap items-center gap-3">
         <Badge variant="accent">{tier.label} tier</Badge>
         <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
-          {formatUsd(tier.min_usd)}{tier.max_usd < 5_000_000 ? ` – ${formatUsd(tier.max_usd)}` : '+'}
+          {formatEtb(tier.min_etb)}
+          {tier.max_etb < 5_000_000_000 ? ` – ${formatEtb(tier.max_etb)}` : '+'}
         </p>
       </div>
       <h2 className="mt-3 text-balance text-2xl font-semibold tracking-tightish sm:text-3xl">

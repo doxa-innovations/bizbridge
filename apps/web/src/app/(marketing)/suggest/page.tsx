@@ -9,9 +9,9 @@ import { Card } from '@/components/ui/card'
 import { SuggestClient } from './suggest-client'
 
 export const metadata: Metadata = {
-  title: 'What business can I open with my money?',
+  title: 'What business can I open with my birr?',
   description:
-    'Enter your starting capital in ETB or USD — get a shortlist of sectors realistic for that budget in Ethiopia, from micro-retail up to investment-tier operations.',
+    'Enter your starting capital in ETB — get a shortlist of sectors realistic for that budget in Ethiopia today, from a home-based side hustle at ETB 30k up to EIC-tier investment operations.',
 }
 
 export const revalidate = 3600
@@ -49,8 +49,9 @@ export default async function SuggestPage() {
             <span className="text-ink-muted">We’ll show you the business.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-balance font-mono text-[13px] leading-relaxed text-ink-muted sm:text-[15px]">
-            Drop your starting capital below. We’ll narrow 519 official MOR sectors down to a
-            realistic shortlist for that budget — no upsell, no gatekeeping.
+            Drop your starting capital below in birr. We’ll narrow 519 official MOR sectors
+            down to a realistic shortlist for that budget in Ethiopia today — no upsell, no
+            gatekeeping. Numbers are indicative of post-float 2026 cost reality.
           </p>
         </div>
       </section>
@@ -84,11 +85,13 @@ export default async function SuggestPage() {
                 Reality check
               </p>
               <p className="mt-2 text-sm leading-relaxed text-ink-muted">
-                These tiers are opinion, not law. Actual minimums depend on the sector-specific
-                licence and — if you’re a foreign investor — on the Ethiopian Investment
-                Commission’s capital thresholds (currently ~$200k for solo, ~$150k as joint
-                venture with an Ethiopian, subject to change). Always verify the current
-                capital minimum for your specific sector before you commit.
+                These tiers are opinion, not law — and Ethiopia is expensive right now. Rent,
+                inventory and imported inputs have all repriced since the birr floated in July
+                2024, so a shopfront that cost ETB 5k/month in 2023 easily runs ETB 15–20k
+                today. Actual minimums depend on the sector-specific licence and — if you’re a
+                foreign investor — on Ethiopian Investment Commission thresholds (roughly
+                ETB 28M solo, ETB 21M as JV with an Ethiopian, subject to change). Always
+                verify the current capital minimum for your specific sector before you commit.
               </p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <Link
