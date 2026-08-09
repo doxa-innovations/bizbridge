@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Send } from 'lucide-react'
+import { LayoutDashboard, Send } from 'lucide-react'
 import { CommandPaletteProvider } from '@/components/command-palette/command-palette'
 import { CommandTrigger } from '@/components/command-palette/command-trigger'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
@@ -7,6 +7,7 @@ import { SupportWidget } from '@/components/support-widget'
 import { MobileNav } from '@/components/marketing/mobile-nav'
 import { NavDropdown } from '@/components/marketing/nav-dropdown'
 import { CONSULT_EMAIL, CONSULT_TELEGRAM } from '@/lib/flags'
+import { optionalUser } from '@/lib/require-user'
 
 const TOOLS_ITEMS = [
   { href: '/suggest', label: 'Suggest by capital', description: 'Got money, need an idea?' },
@@ -39,14 +40,16 @@ const MOBILE_NAV = [
   ...HELP_ITEMS,
 ]
 
-export default function MarketingLayout({ children }: { children: React.ReactNode }) {
+export default async function MarketingLayout({ children }: { children: React.ReactNode }) {
+  const signedInUser = await optionalUser()
+
   return (
     <CommandPaletteProvider>
       <div className="flex min-h-screen flex-col">
         <header className="sticky top-0 z-30 border-b border-border/70 bg-bg/85 backdrop-blur-xl">
           <div className="container-page flex h-14 items-center gap-3">
             <Link
-              href="/"
+              href={signedInUser ? '/dashboard' : '/'}
               className="group flex items-center gap-2.5 font-mono text-[13px] tracking-tight text-ink"
             >
               <span
@@ -71,18 +74,38 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
             <div className="ml-auto flex items-center gap-1.5">
               <CommandTrigger />
               <ThemeToggle />
-              <Link
-                href="/login"
-                className="hidden font-mono text-[12px] text-ink-muted transition-colors hover:text-ink md:inline-flex px-2"
-              >
-                log in
-              </Link>
-              <Link
-                href="/signup"
-                className="hidden md:inline-flex items-center gap-1 rounded-md bg-ink px-3.5 py-1.5 font-mono text-[12px] text-bg transition-opacity hover:opacity-90"
-              >
-                get started
-              </Link>
+              {signedInUser ? (
+                <>
+                  <Link
+                    href="/dashboard"
+                    className="hidden md:inline-flex items-center gap-1.5 rounded-md bg-brand px-3.5 py-1.5 font-mono text-[12px] text-brand-foreground transition-opacity hover:opacity-90"
+                  >
+                    <LayoutDashboard className="h-3 w-3" /> dashboard
+                  </Link>
+                  <Link
+                    href="/dashboard/settings"
+                    className="hidden font-mono text-[12px] text-ink-muted transition-colors hover:text-ink md:inline-flex px-2"
+                    title={signedInUser.email}
+                  >
+                    {signedInUser.name?.split(' ')[0] ?? signedInUser.email.split('@')[0]}
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="hidden font-mono text-[12px] text-ink-muted transition-colors hover:text-ink md:inline-flex px-2"
+                  >
+                    log in
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="hidden md:inline-flex items-center gap-1 rounded-md bg-brand px-3.5 py-1.5 font-mono text-[12px] text-brand-foreground transition-opacity hover:opacity-90"
+                  >
+                    get started
+                  </Link>
+                </>
+              )}
               <MobileNav nav={MOBILE_NAV} className="lg:hidden" />
             </div>
           </div>
