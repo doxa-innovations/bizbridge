@@ -35,11 +35,60 @@ export const ReportRequests: CollectionConfig = {
   fields: [
     { name: 'user_id', type: 'text', required: true, index: true },
     {
+      name: 'request_type',
+      type: 'select',
+      required: true,
+      defaultValue: 'catalog',
+      options: [
+        { label: 'Catalog report', value: 'catalog' },
+        { label: 'Custom (MOR / Trade Bureau / etc.)', value: 'custom' },
+      ],
+      index: true,
+      admin: {
+        description:
+          'catalog = user picked from /dashboard/reports; custom = user described a document we don\'t stock (MOR fee schedule, Trade Bureau circular, etc.) and we fulfill manually.',
+      },
+    },
+    {
       name: 'report',
       type: 'relationship',
       relationTo: 'reports',
-      required: true,
+      // Required only for catalog requests — a beforeValidate hook enforces
+      // this rather than a required flag because Payload doesn't do
+      // conditional required.
       index: true,
+    },
+    {
+      name: 'custom_title',
+      type: 'text',
+      admin: {
+        condition: (data) => data.request_type === 'custom',
+        description: 'Short name of the document the user wants (e.g. "MOR Directive 17/2011 fee schedule").',
+      },
+    },
+    {
+      name: 'custom_source',
+      type: 'select',
+      admin: { condition: (data) => data.request_type === 'custom' },
+      options: [
+        { label: 'Ministry of Revenue (MOR)', value: 'mor' },
+        { label: 'Ministry of Trade & Regional Integration (MoTRI)', value: 'motri' },
+        { label: 'Trade Bureau (regional)', value: 'trade_bureau' },
+        { label: 'Ethiopian Investment Commission (EIC)', value: 'eic' },
+        { label: 'National Bank of Ethiopia (NBE)', value: 'nbe' },
+        { label: 'Customs Commission', value: 'customs' },
+        { label: 'Central Statistics Agency (CSA)', value: 'csa' },
+        { label: 'Other government body', value: 'other_gov' },
+        { label: 'Other', value: 'other' },
+      ],
+    },
+    {
+      name: 'custom_notes',
+      type: 'textarea',
+      admin: {
+        condition: (data) => data.request_type === 'custom',
+        description: 'Any extra context — dates, sector codes, why they need it.',
+      },
     },
     { name: 'amount_etb', type: 'number', required: true, admin: { step: 1 } },
     { name: 'amount_usd', type: 'number', admin: { step: 0.01 } },
@@ -100,8 +149,31 @@ export const ReportRequests: CollectionConfig = {
       defaultValue: 0,
       admin: { readOnly: true, description: 'Incremented on every successful download.' },
     },
+    {
+      name: 'fulfilled_asset',
+      type: 'upload',
+      relationTo: 'media',
+      admin: {
+        description:
+          'For custom requests: the PDF/asset the admin procured (from MOR, Trade Bureau, etc.) and uploaded. Users hit /api/downloads/<id> to fetch it once status = verified.',
+      },
+    },
   ],
   hooks: {
+    beforeValidate: [
+      ({ data }) => {
+        // Enforce the conditional-required rule that Payload can't do natively:
+        // catalog requests need a report, custom requests need a title.
+        if (!data) return data
+        if (data.request_type === 'catalog' && !data.report) {
+          throw new Error('report is required for a catalog request')
+        }
+        if (data.request_type === 'custom' && !data.custom_title) {
+          throw new Error('custom_title is required for a custom request')
+        }
+        return data
+      },
+    ],
     beforeChange: [
       ({ data, originalDoc, req }) => {
         // Auto-populate verified metadata when the admin flips status to 'verified'.

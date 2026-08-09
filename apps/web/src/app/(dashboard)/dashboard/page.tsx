@@ -5,6 +5,7 @@ import {
   ArrowUpRight,
   Bookmark,
   Compass,
+  FileSearch,
   FileText,
   Landmark,
   Newspaper,
@@ -18,6 +19,12 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { GeometricIcon } from '@/components/marketing/geometric-icon'
+import { SourceCite } from '@/components/ui/source-cite'
+import {
+  ProgressRing,
+  CapitalTierMeter,
+  InterestCoverage,
+} from '@/components/dashboard/dashboard-visuals'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 export const dynamic = 'force-dynamic'
@@ -59,7 +66,7 @@ export default async function DashboardPage() {
   const config = getDashboardConfig(user)
 
   const data = await tryPayload(async (payload) => {
-    const [saved, savedReports, reports] = await Promise.all([
+    const [saved, savedReports, reports, totalSectors, activeRequests, categories] = await Promise.all([
       payload.find({
         collection: 'saved-sectors',
         where: { user_id: { equals: user.id } },
@@ -80,18 +87,67 @@ export default async function DashboardPage() {
         depth: 0,
         sort: '-updatedAt',
       }),
+      payload.find({
+        collection: 'business-sectors',
+        limit: 0,
+        depth: 0,
+      }),
+      payload.find({
+        collection: 'report-requests',
+        where: { user_id: { equals: user.id } },
+        limit: 20,
+        depth: 0,
+        sort: '-createdAt',
+      }),
+      payload.find({
+        collection: 'sector-categories',
+        limit: 20,
+        depth: 0,
+      }),
     ])
 
     return {
       savedSectors: (saved.docs as unknown as SavedSector[]).filter((s) => s.sector),
       savedReports: (savedReports.docs as unknown as SavedReport[]).filter((s) => s.report),
       recommendedReports: reports.docs as unknown as RecommendedReport[],
+      totalSectorsCount: totalSectors.totalDocs,
+      requestsCount: activeRequests.totalDocs,
+      requestStatuses: activeRequests.docs.map((r) => (r as { status: string }).status),
+      totalCategoriesCount: categories.totalDocs,
     }
   })
 
   const savedSectors = data?.savedSectors ?? []
   const savedReports = data?.savedReports ?? []
   const recommendedReports = data?.recommendedReports ?? []
+  const totalSectorsCount = data?.totalSectorsCount ?? 518
+  const totalCategoriesCount = data?.totalCategoriesCount ?? 9
+  const requestsCount = data?.requestsCount ?? 0
+  const requestStatuses = data?.requestStatuses ?? []
+  const verifiedRequests = requestStatuses.filter((s) => s === 'verified').length
+  const pendingRequests = requestStatuses.filter((s) => s === 'pending').length
+
+  // Onboarding + engagement completeness (weighted).
+  const completedSignals = [
+    Boolean(user.onboardedAt),
+    Boolean((user.interestCategories ?? []).length >= 1),
+    Boolean(user.capitalTier),
+    Boolean(user.phone),
+    savedSectors.length > 0,
+    savedReports.length > 0 || requestsCount > 0,
+  ]
+  const setupPct = Math.round(
+    (completedSignals.filter(Boolean).length / completedSignals.length) * 100,
+  )
+
+  const TIER_INDEX: Record<string, number> = {
+    solo: 0,
+    micro: 1,
+    small: 2,
+    medium: 3,
+    investment: 4,
+  }
+  const tierIndex = user.capitalTier ? (TIER_INDEX[user.capitalTier] ?? -1) : -1
 
   const tierMeta = user.capitalTier ? CAPITAL_TIER_META[user.capitalTier] : null
 
@@ -162,6 +218,119 @@ export default async function DashboardPage() {
           </div>
         ) : null}
       </header>
+
+      {/* DATA STRIP — small visualisations tying together user progress + market shape */}
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="p-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
+            Profile setup
+          </p>
+          <div className="mt-1">
+            <ProgressRing value={setupPct} label="complete" height={160} />
+          </div>
+          <SourceCite
+            className="mt-2"
+            sources={[{ label: 'Your profile', updated: 'Live' }]}
+            methodology="Onboarding + interests + capital tier + phone + first bookmark + first request"
+          />
+        </Card>
+
+        <Card className="p-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
+            Capital tier
+          </p>
+          <div className="mt-3">
+            <CapitalTierMeter
+              tierLabel={tierMeta?.label ?? 'Not set'}
+              tierIndex={tierIndex}
+            />
+          </div>
+          <SourceCite
+            className="mt-2"
+            sources={[
+              { label: 'MOR Directive 17/2011 + EIC capital thresholds', href: '/services' },
+            ]}
+            methodology="Tier bands from /suggest (Solo 30k–300k ETB, Micro 300k–2M, Small 2M–15M, Medium 15M–150M, Investment 150M+)"
+          />
+        </Card>
+
+        <Card className="p-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
+            Interest coverage
+          </p>
+          <div className="mt-1">
+            <InterestCoverage
+              categoriesInInterest={(user.interestCategories ?? []).length}
+              totalCategories={totalCategoriesCount}
+              matchedSectors={(user.interestSectors ?? []).length}
+              totalSectors={totalSectorsCount}
+              height={160}
+            />
+          </div>
+          <SourceCite
+            className="mt-2"
+            sources={[{ label: 'MOR Directive 17/2011', href: 'https://mor.gov.et' }]}
+            methodology={`How much of Ethiopia's ${totalSectorsCount} licensable sectors your interests cover`}
+          />
+        </Card>
+
+        <Card className="flex flex-col p-5">
+          <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
+            Your requests
+          </p>
+          <p className="mt-2 text-3xl font-semibold tracking-crisp text-ink">
+            {requestsCount}
+            <span className="ml-1 font-mono text-xs text-ink-faint">total</span>
+          </p>
+          <p className="mt-2 flex-1 text-xs text-ink-muted">
+            {verifiedRequests} verified · {pendingRequests} pending
+          </p>
+          <div className="mt-4">
+            <Button asChild size="sm" variant="secondary" className="w-full">
+              <Link href="/dashboard/requests">
+                View history <ArrowRight className="h-3.5 w-3.5" />
+              </Link>
+            </Button>
+          </div>
+          <SourceCite
+            className="mt-3"
+            sources={[{ label: 'Your submissions', updated: 'Live' }]}
+          />
+        </Card>
+      </section>
+
+      {/* REQUEST-A-DOC HERO CTA */}
+      <Card className="relative overflow-hidden p-6 sm:p-8">
+        <div
+          aria-hidden
+          className="absolute inset-y-0 right-0 w-1/2 bg-gradient-to-l from-brand/20 via-brand/5 to-transparent"
+        />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="max-w-xl">
+            <div className="mb-2 inline-flex items-center gap-2">
+              <span className="grid h-8 w-8 place-items-center rounded-md bg-brand/15 text-brand">
+                <FileSearch className="h-4 w-4" />
+              </span>
+              <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
+                Data on demand
+              </p>
+            </div>
+            <h2 className="text-xl font-semibold tracking-tightish text-ink sm:text-2xl">
+              Need a specific doc from MOR, Trade Bureau, or another Ethiopian body?
+            </h2>
+            <p className="mt-2 text-sm text-ink-muted">
+              We procure PDFs, fee schedules, licensing forms and circulars on request.
+              Typical turnaround 2–5 business days · ETB 150–800 depending on source.
+              Refund if we can&apos;t get it.
+            </p>
+          </div>
+          <Button asChild size="lg" className="shrink-0">
+            <Link href="/dashboard/request-data">
+              Request a doc <ArrowRight className="h-4 w-4" />
+            </Link>
+          </Button>
+        </div>
+      </Card>
 
       {/* TAILORED TRIO */}
       <div className="grid gap-4 lg:grid-cols-3">

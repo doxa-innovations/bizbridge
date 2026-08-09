@@ -3,6 +3,7 @@ import * as migration_20260722_000000_bilingual_operations from './20260722_0000
 import * as migration_20260722_010000_bilingual_operations_versions from './20260722_010000_bilingual_operations_versions';
 import * as migration_20260722_020000_fix_version_array_ids from './20260722_020000_fix_version_array_ids';
 import * as migration_20260809_000000_user_data_collections from './20260809_000000_user_data_collections';
+import * as migration_20260809_010000_report_requests_custom from './20260809_010000_report_requests_custom';
 
 export const migrations = [
   {
@@ -29,5 +30,10 @@ export const migrations = [
     up: migration_20260809_000000_user_data_collections.up,
     down: migration_20260809_000000_user_data_collections.down,
     name: '20260809_000000_user_data_collections'
+  },
+  {
+    up: migration_20260809_010000_report_requests_custom.up,
+    down: migration_20260809_010000_report_requests_custom.down,
+    name: '20260809_010000_report_requests_custom'
   },
 ];

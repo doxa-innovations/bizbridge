@@ -5,45 +5,43 @@
 @layer base {
   :root,
   [data-theme='dark'] {
-    /* Warm off-black canvas — less fatiguing on the eye than pure #060606,
-       still deep enough for a data-forward dashboard. */
-    --bg: 20 18 16;
-    --surface: 30 26 22;
-    --surface-2: 40 34 28;
-    --surface-3: 52 44 36;
+    /* Slightly warm off-black — kept from the last iteration; still easier
+       on the eye than pure #060606 without giving up the data-forward feel. */
+    --bg: 14 16 14;
+    --surface: 20 24 22;
+    --surface-2: 28 34 30;
+    --surface-3: 40 48 42;
 
-    --ink: 244 242 238;
-    --ink-muted: 176 172 164;
-    --ink-faint: 128 124 116;
+    --ink: 240 244 240;
+    --ink-muted: 168 178 172;
+    --ink-faint: 120 130 124;
 
-    --border: 56 48 40;
-    --border-strong: 84 74 62;
+    --border: 40 50 44;
+    --border-strong: 64 76 68;
 
-    /* Coffee-gold — the primary brand accent. Ethiopian-rooted, warm,
-       reads distinctly as coffee/gold rather than generic fintech amber. */
-    --brand: 200 155 78;
-    --brand-strong: 224 175 92;
-    --brand-muted: 40 32 20;
-    --brand-foreground: 20 18 16;
+    /* Green as primary brand — signals growth, not fatiguing at the tuned
+       chroma below. Deeper + more professional than the original bright
+       mint (63 171 137) that was hard on the eyes. */
+    --brand: 45 143 114;
+    --brand-strong: 62 170 137;
+    --brand-muted: 15 42 32;
+    --brand-foreground: 14 16 14;
 
-    /* Coffee-gold is also the data-accent. Kept as separate token so
-       secondary UI can be retuned without touching brand later. */
-    --accent: 200 155 78;
-    --accent-muted: 40 32 20;
+    --accent: 45 143 114;
+    --accent-muted: 15 42 32;
 
-    /* Emerald is now a "success/verified" role only, not the primary brand.
-       Down-toned from the old high-chroma mint so it doesn't compete. */
-    --success: 122 190 148;
-    --warn: 224 175 92;
+    /* Semantic roles kept separate from brand so we can retune. */
+    --success: 62 170 137;
+    --warn: 200 155 78;
     --danger: 220 110 110;
 
-    /* Chart palette — coffee-gold primary, muted mint secondary,
-       warm neutrals for reference. Avoid rainbow ramps. */
-    --chart-1: 200 155 78;
-    --chart-2: 122 190 148;
-    --chart-3: 176 172 164;
-    --chart-4: 224 175 92;
-    --chart-5: 100 92 82;
+    /* Chart palette — monochromatic green ramp for tonal viz plus one
+       warm neutral for reference lines/axes. No rainbow. */
+    --chart-1: 45 143 114;   /* brand */
+    --chart-2: 92 180 148;   /* lighter mint */
+    --chart-3: 24 92 72;     /* deep forest */
+    --chart-4: 168 178 172;  /* muted neutral */
+    --chart-5: 200 155 78;   /* one accent for delta lines only */
 
     --radius: 0.625rem;
     color-scheme: dark;
@@ -55,31 +53,31 @@
     --surface-2: 239 235 220;
     --surface-3: 226 221 200;
 
-    --ink: 30 24 18;
-    --ink-muted: 92 88 78;
-    --ink-faint: 140 134 122;
+    --ink: 15 22 20;
+    --ink-muted: 92 98 90;
+    --ink-faint: 140 146 138;
 
-    --border: 226 220 200;
-    --border-strong: 200 192 168;
+    --border: 226 221 200;
+    --border-strong: 200 194 170;
 
-    /* Deeper coffee-gold for light-mode contrast against the cream canvas. */
-    --brand: 148 108 44;
-    --brand-strong: 116 82 28;
-    --brand-muted: 244 232 208;
+    /* Deep forest green — high contrast against cream, signals growth. */
+    --brand: 15 77 61;
+    --brand-strong: 8 44 34;
+    --brand-muted: 220 237 229;
     --brand-foreground: 255 255 255;
 
-    --accent: 148 108 44;
-    --accent-muted: 244 232 208;
+    --accent: 15 77 61;
+    --accent-muted: 220 237 229;
 
-    --success: 40 130 100;
+    --success: 15 77 61;
     --warn: 148 108 44;
     --danger: 180 50 40;
 
-    --chart-1: 148 108 44;
-    --chart-2: 40 130 100;
-    --chart-3: 92 88 78;
-    --chart-4: 116 82 28;
-    --chart-5: 140 134 122;
+    --chart-1: 15 77 61;
+    --chart-2: 45 143 114;
+    --chart-3: 8 44 34;
+    --chart-4: 140 146 138;
+    --chart-5: 148 108 44;
 
     color-scheme: light;
   }

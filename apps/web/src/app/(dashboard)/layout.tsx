@@ -3,6 +3,7 @@ import {
   Calculator,
   CheckSquare,
   Compass,
+  FileSearch,
   FileText,
   Home,
   LayoutDashboard,
@@ -36,6 +37,7 @@ const EXPLORE_NAV: NavItem[] = [
 const WORKSPACE_NAV: NavItem[] = [
   { href: '/checklist', label: 'Checklists', icon: CheckSquare },
   { href: '/dashboard/reports', label: 'Reports', icon: FileText },
+  { href: '/dashboard/request-data', label: 'Request a doc', icon: FileSearch },
   { href: '/dashboard/requests', label: 'Requests', icon: ReceiptText },
 ]
 

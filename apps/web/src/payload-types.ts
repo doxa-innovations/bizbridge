@@ -701,7 +701,20 @@ export interface UserChecklist {
 export interface ReportRequest {
   id: number;
   user_id: string;
-  report: number | Report;
+  /**
+   * catalog = user picked from /dashboard/reports; custom = user described a document we don't stock (MOR fee schedule, Trade Bureau circular, etc.) and we fulfill manually.
+   */
+  request_type: 'catalog' | 'custom';
+  report?: (number | null) | Report;
+  /**
+   * Short name of the document the user wants (e.g. "MOR Directive 17/2011 fee schedule").
+   */
+  custom_title?: string | null;
+  custom_source?: ('mor' | 'motri' | 'trade_bureau' | 'eic' | 'nbe' | 'customs' | 'csa' | 'other_gov' | 'other') | null;
+  /**
+   * Any extra context — dates, sector codes, why they need it.
+   */
+  custom_notes?: string | null;
   amount_etb: number;
   amount_usd?: number | null;
   payment_method: 'telebirr' | 'cbe_birr';
@@ -728,6 +741,10 @@ export interface ReportRequest {
    * Incremented on every successful download.
    */
   download_count?: number | null;
+  /**
+   * For custom requests: the PDF/asset the admin procured (from MOR, Trade Bureau, etc.) and uploaded. Users hit /api/downloads/<id> to fetch it once status = verified.
+   */
+  fulfilled_asset?: (number | null) | Media;
   updatedAt: string;
   createdAt: string;
 }
@@ -1302,7 +1319,11 @@ export interface UserChecklistsSelect<T extends boolean = true> {
  */
 export interface ReportRequestsSelect<T extends boolean = true> {
   user_id?: T;
+  request_type?: T;
   report?: T;
+  custom_title?: T;
+  custom_source?: T;
+  custom_notes?: T;
   amount_etb?: T;
   amount_usd?: T;
   payment_method?: T;
@@ -1314,6 +1335,7 @@ export interface ReportRequestsSelect<T extends boolean = true> {
   verified_at?: T;
   download_expires_at?: T;
   download_count?: T;
+  fulfilled_asset?: T;
   updatedAt?: T;
   createdAt?: T;
 }

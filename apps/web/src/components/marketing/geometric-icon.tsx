@@ -38,7 +38,7 @@ const TINT_MAP: Record<string, string> = {
   'manufacturing': '#c66a3a',
   'electricity-gas-water-waste': '#3a8f9c',
   'construction': '#a05c50',
-  'wholesale-retail-hotels-import-export': '#2E8B76',
+  'wholesale-retail-hotels-import-export': '#2D8F72',
   'transport-storage-communication': '#4c6ea8',
   'finance-insurance-real-estate-business': '#a48242',
   'community-social-personal-services': '#7d5e88',
@@ -51,7 +51,7 @@ interface GeometricIconProps {
 
 export function GeometricIcon({ slug, className }: GeometricIconProps) {
   const Icon = ICON_MAP[slug] ?? Briefcase
-  const tint = TINT_MAP[slug] ?? '#C89B4E'
+  const tint = TINT_MAP[slug] ?? '#2D8F72'
 
   return (
     <div

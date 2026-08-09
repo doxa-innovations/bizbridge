@@ -17,13 +17,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'expected multipart/form-data' }, { status: 400 })
   }
 
-  const reportIdRaw = form.get('reportId')
+  const requestType = (form.get('requestType') as string) || 'catalog'
   const paymentMethod = form.get('paymentMethod')
   const paymentReference = form.get('paymentReference')
   const screenshot = form.get('screenshot')
+  const amountEtbRaw = form.get('amountEtb')
 
-  if (typeof reportIdRaw !== 'string' || !reportIdRaw) {
-    return NextResponse.json({ error: 'reportId required' }, { status: 400 })
+  if (requestType !== 'catalog' && requestType !== 'custom') {
+    return NextResponse.json({ error: 'invalid requestType' }, { status: 400 })
   }
   if (paymentMethod !== 'telebirr' && paymentMethod !== 'cbe_birr') {
     return NextResponse.json({ error: 'invalid paymentMethod' }, { status: 400 })
@@ -43,17 +44,47 @@ export async function POST(req: NextRequest) {
 
   const payload = await getPayloadClient()
 
-  // Load report to lock in the price at request time
-  const reportId = Number.isFinite(Number(reportIdRaw)) ? Number(reportIdRaw) : reportIdRaw
-  const reportRes = await payload.find({
-    collection: 'reports',
-    where: { id: { equals: reportId } },
-    limit: 1,
-    depth: 0,
-    overrideAccess: true,
-  })
-  const report = reportRes.docs[0]
-  if (!report) return NextResponse.json({ error: 'report not found' }, { status: 404 })
+  // Catalog vs custom: resolve report + pricing accordingly.
+  let reportId: number | null = null
+  let amountEtb = 0
+  let amountUsd: number | undefined = undefined
+  let customTitle: string | undefined
+  let customSource: string | undefined
+  let customNotes: string | undefined
+
+  if (requestType === 'catalog') {
+    const reportIdRaw = form.get('reportId')
+    if (typeof reportIdRaw !== 'string' || !reportIdRaw) {
+      return NextResponse.json({ error: 'reportId required' }, { status: 400 })
+    }
+    const id = Number.isFinite(Number(reportIdRaw)) ? Number(reportIdRaw) : null
+    if (id === null) return NextResponse.json({ error: 'invalid reportId' }, { status: 400 })
+    const reportRes = await payload.find({
+      collection: 'reports',
+      where: { id: { equals: id } },
+      limit: 1,
+      depth: 0,
+      overrideAccess: true,
+    })
+    const report = reportRes.docs[0] as { id: number; price_birr?: number; price_usd?: number } | undefined
+    if (!report) return NextResponse.json({ error: 'report not found' }, { status: 404 })
+    reportId = report.id
+    amountEtb = report.price_birr ?? 0
+    amountUsd = report.price_usd ?? undefined
+  } else {
+    // custom
+    customTitle = (form.get('customTitle') as string)?.trim()
+    customSource = (form.get('customSource') as string) || undefined
+    customNotes = (form.get('customNotes') as string) || undefined
+    if (!customTitle) {
+      return NextResponse.json({ error: 'customTitle required' }, { status: 400 })
+    }
+    const parsedAmount = amountEtbRaw ? Number(amountEtbRaw) : NaN
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      return NextResponse.json({ error: 'amountEtb must be > 0 for custom requests' }, { status: 400 })
+    }
+    amountEtb = parsedAmount
+  }
 
   // Rate-limit: max 3 pending requests per user per hour to blunt spam
   const hourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
@@ -81,7 +112,10 @@ export async function POST(req: NextRequest) {
   const media = await payload.create({
     collection: 'media',
     data: {
-      alt: `Payment screenshot for report ${report.title} — user ${user.id}`,
+      alt:
+        requestType === 'catalog'
+          ? `Payment screenshot for report id ${reportId} — user ${user.id}`
+          : `Payment screenshot for custom request "${customTitle}" — user ${user.id}`,
     },
     file: {
       data: buffer,
@@ -97,9 +131,13 @@ export async function POST(req: NextRequest) {
     collection: 'report-requests',
     data: {
       user_id: user.id,
-      report: Number((report as { id: number | string }).id),
-      amount_etb: (report as { price_birr?: number }).price_birr ?? 0,
-      amount_usd: (report as { price_usd?: number }).price_usd ?? undefined,
+      request_type: requestType,
+      ...(reportId ? { report: reportId } : {}),
+      ...(customTitle ? { custom_title: customTitle } : {}),
+      ...(customSource ? { custom_source: customSource as never } : {}),
+      ...(customNotes ? { custom_notes: customNotes } : {}),
+      amount_etb: amountEtb,
+      amount_usd: amountUsd,
       payment_method: paymentMethod,
       payment_reference: typeof paymentReference === 'string' ? paymentReference : undefined,
       payment_screenshot: Number((media as { id: number | string }).id),
