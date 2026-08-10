@@ -6,9 +6,34 @@ const ACCEPTED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp'])
 const MAX_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB
 const MAX_PENDING_PER_HOUR = 3
 
+// Payment screenshots need durable storage — refuse the upload in production
+// if R2 isn't configured, rather than silently writing to the ephemeral
+// container filesystem where the file vanishes on next restart. Matches the
+// boot warning in payload.config.ts.
+function assertDurableStorage(): NextResponse | null {
+  if (process.env.NODE_ENV !== 'production') return null
+  const r2Enabled = Boolean(
+    process.env.R2_ACCESS_KEY_ID &&
+      process.env.R2_SECRET_ACCESS_KEY &&
+      process.env.R2_BUCKET_NAME &&
+      process.env.R2_ENDPOINT,
+  )
+  if (r2Enabled) return null
+  return NextResponse.json(
+    {
+      error:
+        'Storage misconfigured — payment screenshots cannot be persisted. Contact admin (R2 credentials missing).',
+    },
+    { status: 503 },
+  )
+}
+
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+
+  const storageError = assertDurableStorage()
+  if (storageError) return storageError
 
   let form: FormData
   try {

@@ -39,18 +39,21 @@ const r2Enabled = Boolean(
     process.env.R2_ENDPOINT,
 )
 
-// Payment screenshots for /dashboard/requests must persist across cold starts.
-// Payload's default disk storage is ephemeral on Dokploy/Vercel, which would
-// silently break the verification workflow the first time the container recycles.
-// Fail loud in production so ops notice before users notice — but ONLY at
-// runtime start, not during the build (build has no R2 env and doesn't need
-// to write files). Detected via NEXT_PHASE, which Next sets to
-// 'phase-production-build' during `next build`.
-const isBuild = process.env.NEXT_PHASE === 'phase-production-build'
-if (process.env.NODE_ENV === 'production' && !r2Enabled && !isBuild) {
-  throw new Error(
-    'R2 credentials required in production — payment screenshots cannot be stored on ephemeral disk. ' +
-      'Set R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET_NAME / R2_ENDPOINT in Dokploy.',
+// Payment screenshots (report-requests upload flow) need durable storage in
+// production — the Dokploy filesystem is ephemeral, so a container restart
+// would nuke them. We used to fail-loud at config load if R2 wasn't set, but
+// Next's "Collecting page data" phase spawns workers where NEXT_PHASE doesn't
+// propagate reliably, which broke `next build`.
+//
+// Enforcement moved into the actual upload handler (POST /api/report-requests):
+// it 503s with a clear message when R2 is missing in prod, so deploys still
+// succeed and only the affected surface fails loudly. Boot warning below
+// gives ops a heads-up in the log before anyone tries to upload.
+if (process.env.NODE_ENV === 'production' && !r2Enabled) {
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[payload] R2 credentials not set — payment screenshot uploads will 503. ' +
+      'Set R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET_NAME / R2_ENDPOINT in Dokploy to fix.',
   )
 }
 
