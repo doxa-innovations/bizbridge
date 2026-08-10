@@ -121,20 +121,41 @@ function CanvasEditorInner({
     return () => clearTimeout(handle)
   }, [nodes, edges, title])
 
+  /** Persist with retry + exponential backoff. A single failed save is
+   *  common on flaky wifi; losing 20 minutes of planning to a transient
+   *  network blip is not. On every failure we retry up to 3 more times
+   *  (2s → 4s → 8s) and only toast if all attempts fail — leaving
+   *  dirtyRef.current = true so the next user edit re-triggers a save. */
   const persist = useCallback(async () => {
     if (!dirtyRef.current) return
     setSaving(true)
+
+    const attempt = async (n: number): Promise<void> => {
+      try {
+        await saveCanvas({
+          id: canvasId,
+          title,
+          nodes: nodes as unknown as CanvasNode[],
+          edges: edges as unknown as CanvasEdge[],
+        })
+        dirtyRef.current = false
+        setDirty(false)
+      } catch (err) {
+        if (n >= 3) {
+          toast.error(
+            `Save failed — will retry on your next edit. (${(err as Error).message ?? 'unknown'})`,
+          )
+          return
+        }
+        // 2s → 4s → 8s
+        const backoffMs = 2000 * 2 ** n
+        await new Promise((r) => setTimeout(r, backoffMs))
+        return attempt(n + 1)
+      }
+    }
+
     try {
-      await saveCanvas({
-        id: canvasId,
-        title,
-        nodes: nodes as unknown as CanvasNode[],
-        edges: edges as unknown as CanvasEdge[],
-      })
-      dirtyRef.current = false
-      setDirty(false)
-    } catch (err) {
-      toast.error((err as Error).message ?? 'Save failed')
+      await attempt(0)
     } finally {
       setSaving(false)
     }

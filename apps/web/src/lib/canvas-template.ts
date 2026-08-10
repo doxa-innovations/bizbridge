@@ -11,6 +11,7 @@ export type CanvasNodeType =
   | 'contact'
   | 'doc'
   | 'milestone'
+  | 'note'
 
 export interface CanvasNode {
   id: string
@@ -150,10 +151,11 @@ export async function buildOnboardingTemplate(user: CurrentUser): Promise<Canvas
  * with revenue-side milestones (first LC, first container FOB Djibouti).
  */
 async function buildCoffeeExport(_user: CurrentUser): Promise<CanvasSeed> {
-  const [sector] = await resolveSectors(['46201'])
+  // 66141 = Processed coffee export (confirmed in seed CAPITAL_TIERS).
+  const [sector] = await resolveSectors(['66141'])
   return {
     nodes: [
-      sectorNode('sector', { x: 60, y: 40 }, sector ?? null, '46201', 'Coffee exporter'),
+      sectorNode('sector', { x: 60, y: 40 }, sector ?? null, '66141', 'Coffee exporter'),
       { id: 'task-license', type: 'task', position: { x: 380, y: 40 }, data: { text: 'Get Coffee Exporter licence (Coffee & Tea Authority)', done: false } },
       { id: 'task-eic', type: 'task', position: { x: 380, y: 160 }, data: { text: 'Register with ECX + bond a member trader (or use a broker)', done: false } },
       { id: 'contact-buyer', type: 'contact', position: { x: 380, y: 280 }, data: { name: 'Green-coffee buyer', role: 'Roaster / importer abroad', contact: 'Direct or via GCA lead list' } },
@@ -185,10 +187,11 @@ async function buildCoffeeExport(_user: CurrentUser): Promise<CanvasSeed> {
  * from lease → licence → hire → soft-open → break-even.
  */
 async function buildRestaurant(_user: CurrentUser): Promise<CanvasSeed> {
-  const [sector] = await resolveSectors(['55103'])
+  // 64114 = Restaurant (confirmed in seed CAPITAL_TIERS).
+  const [sector] = await resolveSectors(['64114'])
   return {
     nodes: [
-      sectorNode('sector', { x: 60, y: 40 }, sector ?? null, '55103', 'Restaurant'),
+      sectorNode('sector', { x: 60, y: 40 }, sector ?? null, '64114', 'Restaurant'),
       { id: 'task-lease', type: 'task', position: { x: 380, y: 40 }, data: { text: 'Sign 3-year lease (main-road frontage, 80–120 m²)', done: false } },
       { id: 'task-kitchen', type: 'task', position: { x: 380, y: 160 }, data: { text: 'Kitchen fit-out (hood, three-comp sink, cold storage)', done: false } },
       { id: 'task-licence', type: 'task', position: { x: 720, y: 40 }, data: { text: 'Food licence — Bishoftu City Trade Office', done: false } },
@@ -220,10 +223,11 @@ async function buildRestaurant(_user: CurrentUser): Promise<CanvasSeed> {
  * revenue first then product later. Anchored on "Software Development".
  */
 async function buildSoftwareStartup(_user: CurrentUser): Promise<CanvasSeed> {
-  const [sector] = await resolveSectors(['62012'])
+  // 39141 = Software development (confirmed in seed CAPITAL_TIERS).
+  const [sector] = await resolveSectors(['39141'])
   return {
     nodes: [
-      sectorNode('sector', { x: 60, y: 40 }, sector ?? null, '62012', 'Software developer'),
+      sectorNode('sector', { x: 60, y: 40 }, sector ?? null, '39141', 'Software developer'),
       { id: 'task-plc', type: 'task', position: { x: 380, y: 40 }, data: { text: 'Register PLC — 2 founders, min ETB 15k paid-up (or 50k for local BPO)', done: false } },
       { id: 'task-tin', type: 'task', position: { x: 380, y: 160 }, data: { text: 'Get TIN + VAT registration', done: false } },
       { id: 'task-bank', type: 'task', position: { x: 380, y: 280 }, data: { text: 'Open CBE / Awash business account + FX account (for USD invoices)', done: false } },
@@ -255,10 +259,11 @@ async function buildSoftwareStartup(_user: CurrentUser): Promise<CanvasSeed> {
  * apparel, groceries — flexible). Runs from lease → inventory → open.
  */
 async function buildRetailShop(_user: CurrentUser): Promise<CanvasSeed> {
-  const [sector] = await resolveSectors(['47190'])
+  // 62114 = Minimarket / suq (confirmed in seed CAPITAL_TIERS).
+  const [sector] = await resolveSectors(['62114'])
   return {
     nodes: [
-      sectorNode('sector', { x: 60, y: 40 }, sector ?? null, '47190', 'Retail shop'),
+      sectorNode('sector', { x: 60, y: 40 }, sector ?? null, '62114', 'Retail shop'),
       { id: 'task-lease', type: 'task', position: { x: 380, y: 40 }, data: { text: 'Sign shop lease — 30–60 m² on a foot-traffic street', done: false } },
       { id: 'task-fit', type: 'task', position: { x: 380, y: 160 }, data: { text: 'Shelving + POS + signage', done: false } },
       { id: 'task-licence', type: 'task', position: { x: 380, y: 280 }, data: { text: 'Trade licence — City Trade Office (renewable yearly)', done: false } },
@@ -289,10 +294,11 @@ async function buildRetailShop(_user: CurrentUser): Promise<CanvasSeed> {
  * hours × rate.
  */
 async function buildConsulting(_user: CurrentUser): Promise<CanvasSeed> {
-  const [sector] = await resolveSectors(['70200'])
+  // 86114 = Business / management consultancy (confirmed in seed CAPITAL_TIERS).
+  const [sector] = await resolveSectors(['86114'])
   return {
     nodes: [
-      sectorNode('sector', { x: 60, y: 40 }, sector ?? null, '70200', 'Management consultant'),
+      sectorNode('sector', { x: 60, y: 40 }, sector ?? null, '86114', 'Business consultant'),
       { id: 'task-register', type: 'task', position: { x: 380, y: 40 }, data: { text: 'Sole prop or PLC? Register accordingly (PLC for shielding personal assets)', done: false } },
       { id: 'task-tin', type: 'task', position: { x: 380, y: 160 }, data: { text: 'TIN + VAT (if projected turnover > ETB 1M/yr)', done: false } },
       { id: 'task-credentials', type: 'task', position: { x: 380, y: 280 }, data: { text: 'Publish 2–3 case-studies on LinkedIn + a simple site', done: false } },

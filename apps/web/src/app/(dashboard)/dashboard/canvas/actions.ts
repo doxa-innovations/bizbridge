@@ -70,8 +70,13 @@ export async function saveCanvas(input: {
     overrideAccess: true,
   })
 
+  // Intentionally NOT revalidating the /dashboard/canvas/[id] path here.
+  // The editor client already holds the fresh state — a revalidate would
+  // trigger a background server-component re-render on every autosave
+  // (fires every 1.5s while the user is editing), which was the source
+  // of the "Server Components render" red toast users kept seeing. We
+  // only revalidate the list so the gallery card timestamps update.
   revalidatePath('/dashboard/canvas')
-  revalidatePath(`/dashboard/canvas/${input.id}`)
   return { ok: true }
 }
 
@@ -94,7 +99,9 @@ export async function togglePublish(input: { id: number; publish: boolean }) {
     overrideAccess: true,
   })
 
-  revalidatePath(`/dashboard/canvas/${input.id}`)
+  // Same reasoning as saveCanvas — the client updates its local
+  // is_public/shareToken state directly from this action's return, so
+  // there's nothing to revalidate on the editor route.
   return {
     ok: true,
     isPublic: Boolean(updated.is_public),

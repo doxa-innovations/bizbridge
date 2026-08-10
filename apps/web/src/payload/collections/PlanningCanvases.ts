@@ -78,15 +78,13 @@ export const PlanningCanvases: CollectionConfig = {
   ],
   hooks: {
     beforeChange: [
-      ({ data, operation, originalDoc }) => {
-        // Mint a share token the first time is_public flips to true. Keep the
-        // same token across future toggles so an already-shared URL keeps
-        // working after a temporary unpublish.
+      ({ data, originalDoc }) => {
+        // Mint a share token the first time is_public flips to true. Keep
+        // the same token across future toggles so an already-shared URL
+        // keeps working after a temporary unpublish. Payload manages
+        // updatedAt itself when timestamps: true — don't touch it here.
         if (data.is_public && !data.share_token && !originalDoc?.share_token) {
           data.share_token = crypto.randomBytes(12).toString('base64url')
-        }
-        if (operation === 'update') {
-          data.updatedAt = new Date().toISOString()
         }
         return data
       },

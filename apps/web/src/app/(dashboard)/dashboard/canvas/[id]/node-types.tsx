@@ -1,6 +1,6 @@
 'use client'
 
-import { memo } from 'react'
+import { memo, useState } from 'react'
 import Link from 'next/link'
 import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react'
 import {
@@ -11,10 +11,13 @@ import {
   FileQuestion,
   Layers,
   Lightbulb,
+  Repeat2,
+  StickyNote,
   X,
 } from 'lucide-react'
 import { cn } from '@/lib/cn'
 import type { CanvasNodeType } from '@/lib/canvas-template'
+import { SectorDeepPicker } from '@/components/sectors/sector-deep-picker'
 
 /** Shared visual chrome for every node type — outline, both handles,
  *  header row (icon + label + hover-only delete). Selected nodes get a
@@ -26,19 +29,22 @@ function NodeChrome({
   children,
   className,
   id,
+  actions,
 }: {
   icon: React.ReactNode
   label: string
   children: React.ReactNode
   className?: string
   id: string
+  /** Optional extra icon buttons rendered to the LEFT of the delete
+   *  button in the node header. Sector node uses this for the swap
+   *  affordance. */
+  actions?: React.ReactNode
 }) {
   const { setNodes, setEdges } = useReactFlow()
   return (
     <div
       className={cn(
-        // The wrapper gets a subtle default border. Selected nodes are
-        // targeted by the global CSS rule below — see canvas.css.
         'group relative min-w-[220px] max-w-[280px] rounded-lg border border-border bg-surface shadow-sm transition-all',
         'hover:border-brand/40',
         className,
@@ -59,30 +65,59 @@ function NodeChrome({
           {icon}
           <span className="font-mono text-[10px] uppercase tracking-[0.14em]">{label}</span>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setNodes((nodes) => nodes.filter((n) => n.id !== id))
-            setEdges((edges) => edges.filter((e) => e.source !== id && e.target !== id))
-          }}
-          className="opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-          aria-label="Delete node"
-        >
-          <X className="h-3 w-3" />
-        </button>
+        <div className="flex items-center gap-1.5">
+          {actions}
+          <button
+            type="button"
+            onClick={() => {
+              setNodes((nodes) => nodes.filter((n) => n.id !== id))
+              setEdges((edges) => edges.filter((e) => e.source !== id && e.target !== id))
+            }}
+            className="opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+            aria-label="Delete node"
+          >
+            <X className="h-3 w-3" />
+          </button>
+        </div>
       </div>
       <div className="px-3 py-2">{children}</div>
     </div>
   )
 }
 
-/** Sector node — pinned to a MOR sector, links out to the sector detail. */
+/** Sector node — pinned to a MOR sector, links out to the sector detail.
+ *  Includes a "swap sector" affordance so the user can change the pinned
+ *  sector without deleting the node (previous version required delete +
+ *  re-add, which lost all connected edges). */
 export const SectorNode = memo(function SectorNode({ id, data }: NodeProps) {
+  const { setNodes } = useReactFlow()
+  const [swapOpen, setSwapOpen] = useState(false)
+
   const morCode = (data.morCode as string) ?? ''
   const title = (data.title as string) ?? 'Untitled sector'
   const slug = (data.slug as string) ?? null
+
   return (
-    <NodeChrome id={id} icon={<Layers />} label="Sector" className="border-brand/50">
+    <NodeChrome
+      id={id}
+      icon={<Layers />}
+      label="Sector"
+      className="border-brand/50"
+      actions={
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            setSwapOpen(true)
+          }}
+          className="opacity-0 transition-opacity hover:text-brand group-hover:opacity-100"
+          aria-label="Swap sector"
+          title="Swap sector"
+        >
+          <Repeat2 className="h-3 w-3" />
+        </button>
+      }
+    >
       <p className="mb-1 font-mono text-[10px] text-brand">MOR {morCode}</p>
       {slug ? (
         <Link
@@ -94,6 +129,57 @@ export const SectorNode = memo(function SectorNode({ id, data }: NodeProps) {
       ) : (
         <p className="text-sm font-semibold leading-tight text-ink">{title}</p>
       )}
+      {swapOpen ? (
+        <SectorDeepPicker
+          onClose={() => setSwapOpen(false)}
+          onSelect={(hit) => {
+            setNodes((nodes) =>
+              nodes.map((n) =>
+                n.id === id
+                  ? {
+                      ...n,
+                      data: {
+                        ...n.data,
+                        morCode: hit.mor_code,
+                        title: hit.name_en,
+                        slug: hit.slug,
+                      },
+                    }
+                  : n,
+              ),
+            )
+            setSwapOpen(false)
+          }}
+        />
+      ) : null}
+    </NodeChrome>
+  )
+})
+
+/** Sticky note — free-form annotation for the canvas. Distinct warm
+ *  yellow tint so it visually stands out from actionable blocks. */
+export const NoteNode = memo(function NoteNode({ id, data }: NodeProps) {
+  const { setNodes } = useReactFlow()
+  const text = (data.text as string) ?? ''
+  return (
+    <NodeChrome
+      id={id}
+      icon={<StickyNote />}
+      label="Note"
+      className="border-warn/40 bg-[color-mix(in_oklch,var(--warn)_10%,var(--surface))]"
+    >
+      <textarea
+        value={text}
+        onChange={(e) => {
+          const v = e.target.value
+          setNodes((nodes) =>
+            nodes.map((n) => (n.id === id ? { ...n, data: { ...n.data, text: v } } : n)),
+          )
+        }}
+        placeholder="Note or annotation…"
+        rows={3}
+        className="w-full resize-none rounded border border-transparent bg-transparent p-1 text-sm leading-snug text-ink placeholder:text-ink-faint focus:border-brand/40 focus:outline-none"
+      />
     </NodeChrome>
   )
 })
@@ -289,4 +375,5 @@ export const NODE_TYPES: Record<CanvasNodeType, React.ComponentType<NodeProps>> 
   contact: ContactNode,
   doc: DocNode,
   milestone: MilestoneNode,
+  note: NoteNode,
 }
