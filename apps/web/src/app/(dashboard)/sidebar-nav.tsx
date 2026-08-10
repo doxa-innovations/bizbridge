@@ -45,7 +45,7 @@ const EXPLORE: SidebarSection = {
     { href: '/dashboard/brainstorm', label: 'Brainstorm', icon: Lightbulb },
     { href: '/dashboard/research', label: 'Research', icon: Library },
     { href: '/dashboard/pulse', label: 'Pulse', icon: Newspaper },
-    { href: '/sectors', label: 'Sectors', icon: Layers },
+    { href: '/dashboard/sectors', label: 'Sectors', icon: Layers },
     { href: '/calculator', label: 'Calculator', icon: Calculator },
   ],
 }

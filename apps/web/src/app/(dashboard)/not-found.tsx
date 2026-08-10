@@ -30,7 +30,7 @@ export default function DashboardNotFound() {
             </Link>
           </Button>
           <Button asChild size="sm" variant="secondary">
-            <Link href="/sectors">Browse sectors</Link>
+            <Link href="/dashboard/sectors">Browse sectors</Link>
           </Button>
           <Button asChild size="sm" variant="ghost">
             <Link href="/dashboard/pulse">Open Pulse</Link>

@@ -101,7 +101,7 @@ export default async function ResearchPage() {
                 <Download className="h-3 w-3" /> Export CSV
               </a>
             ) : null}
-            <Link href="/sectors" className="text-xs text-ink-muted hover:text-ink">
+            <Link href="/dashboard/sectors" className="text-xs text-ink-muted hover:text-ink">
               Browse all →
             </Link>
           </div>
@@ -118,7 +118,7 @@ export default async function ResearchPage() {
               </p>
             </div>
             <Button asChild size="sm">
-              <Link href="/sectors">
+              <Link href="/dashboard/sectors">
                 Browse sectors <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             </Button>
@@ -129,7 +129,7 @@ export default async function ResearchPage() {
               <Card key={s.id} className="flex flex-col p-4">
                 <Badge variant="mono">{s.sector.mor_code}</Badge>
                 <Link
-                  href={`/sectors/${s.sector.slug}`}
+                  href={`/dashboard/sectors/${s.sector.slug}`}
                   className="mt-2 line-clamp-2 text-sm font-medium text-ink hover:text-brand"
                 >
                   {humanizeSectorName(s.sector.mor_code, s.sector.name_en)}

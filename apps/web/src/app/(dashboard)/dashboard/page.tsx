@@ -206,7 +206,7 @@ export default async function DashboardPage() {
             {user.interestCategories.map((slug) => (
               <Link
                 key={slug}
-                href={`/sectors?category=${slug}`}
+                href={`/dashboard/sectors?category=${slug}`}
                 className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-surface px-2.5 py-1 font-mono text-[11px] text-ink-muted hover:border-brand/40 hover:text-ink"
               >
                 <GeometricIcon slug={slug} className="h-3.5 w-3.5" />
@@ -411,14 +411,14 @@ export default async function DashboardPage() {
             title="You haven't bookmarked a sector yet"
             body="Run the 5-question wizard to get 3 picks in under a minute — or browse the 519-sector catalog."
             primary={{ label: 'Run the wizard', href: '/wizard' }}
-            secondary={{ label: 'Browse sectors', href: '/sectors' }}
+            secondary={{ label: 'Browse sectors', href: '/dashboard/sectors' }}
           />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {savedSectors.map((s) => (
               <Link
                 key={s.id}
-                href={`/sectors/${s.sector.slug}`}
+                href={`/dashboard/sectors/${s.sector.slug}`}
                 className="group flex items-start justify-between gap-3 rounded-lg border border-border bg-surface p-4 transition-all hover:border-brand/40"
               >
                 <div className="min-w-0 flex-1">

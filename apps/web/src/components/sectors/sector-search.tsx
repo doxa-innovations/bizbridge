@@ -4,7 +4,14 @@ import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Search } from 'lucide-react'
 
-export function SectorSearch() {
+interface Props {
+  /** Where the browser is mounted — '/sectors' (marketing) or
+   *  '/dashboard/sectors' (dashboard). Ensures the debounced search
+   *  redirect hits the right route. */
+  basePath?: string
+}
+
+export function SectorSearch({ basePath = '/sectors' }: Props) {
   const router = useRouter()
   const params = useSearchParams()
   const [value, setValue] = useState(params.get('q') ?? '')
@@ -14,11 +21,11 @@ export function SectorSearch() {
       const next = new URLSearchParams(params.toString())
       if (value) next.set('q', value)
       else next.delete('q')
-      router.replace(`/sectors?${next.toString()}`, { scroll: false })
+      router.replace(`${basePath}?${next.toString()}`, { scroll: false })
     }, 250)
     return () => clearTimeout(handle)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [value])
+  }, [value, basePath])
 
   return (
     <div className="relative">
