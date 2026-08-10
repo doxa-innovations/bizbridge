@@ -14,7 +14,7 @@ export default async function BrainstormPage() {
   const user = await requireUser()
   const config = getDashboardConfig(user)
 
-  const suggestHref = `/suggest${config.suggestQuery}`
+  const suggestHref = `/dashboard/suggest${config.suggestQuery}`
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -74,7 +74,7 @@ export default async function BrainstormPage() {
           </div>
           <div className="mt-4">
             <Button asChild>
-              <Link href="/wizard">
+              <Link href="/dashboard/wizard">
                 Open Wizard <ArrowRight className="h-4 w-4" />
               </Link>
             </Button>
@@ -97,7 +97,7 @@ export default async function BrainstormPage() {
             </div>
           </div>
           <Button asChild size="sm" variant="secondary">
-            <Link href="/compare">
+            <Link href="/dashboard/compare">
               Open Compare <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </Button>
