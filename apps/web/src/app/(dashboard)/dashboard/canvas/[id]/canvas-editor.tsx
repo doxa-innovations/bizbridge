@@ -10,24 +10,29 @@ import {
   addEdge,
   useEdgesState,
   useNodesState,
+  useReactFlow,
   type Connection,
   type Edge,
   type Node,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
+import { toPng } from 'html-to-image'
 import {
   BookOpen,
   Calendar,
   CheckSquare,
   Contact as ContactIcon,
   Download,
+  FileImage,
   FileQuestion,
   Layers,
   Lightbulb,
   Loader2,
   Plus,
+  Redo2,
   Save,
   Share2,
+  Undo2,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -51,9 +56,6 @@ interface Props {
   initialShareToken: string | null
 }
 
-/** Add-node menu presets — icon + label + default `data` payload for each
- *  supported node type. Kept in one array so the dropdown and the seed
- *  helper stay in lockstep. */
 const ADDABLE_NODES: Array<{
   type: CanvasNodeType
   label: string
@@ -68,6 +70,20 @@ const ADDABLE_NODES: Array<{
   { type: 'milestone', label: 'Milestone', icon: <Calendar className="h-3.5 w-3.5" />, defaultData: { text: '', target: null } },
   { type: 'sector', label: 'Sector (add MOR code)', icon: <Layers className="h-3.5 w-3.5" />, defaultData: { morCode: '', title: '', slug: null } },
 ]
+
+/** History entry — full snapshot of everything the user can change.
+ *  Kept small enough that a 50-deep stack is cheap. */
+interface Snapshot {
+  nodes: Node[]
+  edges: Edge[]
+  title: string
+}
+
+const HISTORY_LIMIT = 50
+/** Debounce for coalescing rapid changes (drag, typing) into one history
+ *  entry. Small enough to feel responsive on Undo, large enough that
+ *  dragging a node doesn't push 60 entries a second. */
+const HISTORY_DEBOUNCE_MS = 400
 
 function CanvasEditorInner({
   canvasId,
@@ -84,7 +100,57 @@ function CanvasEditorInner({
   const [dirty, setDirty] = useState(false)
   const [isPublic, setIsPublic] = useState(initialIsPublic)
   const [shareToken, setShareToken] = useState(initialShareToken)
+  const [exportingPng, setExportingPng] = useState(false)
   const dirtyRef = useRef(false)
+
+  // Undo/redo stacks. `applyingHistoryRef` prevents the state effect below
+  // from re-pushing to history when we're the ones setting state via
+  // undo/redo. `initialisedRef` skips the first tick so we don't record the
+  // initial mount as a snapshot.
+  const [past, setPast] = useState<Snapshot[]>([])
+  const [future, setFuture] = useState<Snapshot[]>([])
+  const applyingHistoryRef = useRef(false)
+  const initialisedRef = useRef(false)
+  const lastPushedRef = useRef<string>('')
+
+  useEffect(() => {
+    if (!initialisedRef.current) {
+      // Seed the "last pushed" fingerprint with the initial state so a no-op
+      // change on mount doesn't trigger a snapshot.
+      lastPushedRef.current = JSON.stringify({
+        nodes: initialNodes,
+        edges: initialEdges,
+        title: initialTitle,
+      })
+      initialisedRef.current = true
+      return
+    }
+    if (applyingHistoryRef.current) {
+      // Coming out of an undo/redo — flip the flag back off, don't push.
+      applyingHistoryRef.current = false
+      return
+    }
+    // Coalesce rapid changes (drag frames, keystrokes) into one entry.
+    const handle = setTimeout(() => {
+      const fingerprint = JSON.stringify({ nodes, edges, title })
+      if (fingerprint === lastPushedRef.current) return
+      setPast((prev) => {
+        const next = [
+          ...prev,
+          {
+            nodes: JSON.parse(lastPushedRef.current).nodes,
+            edges: JSON.parse(lastPushedRef.current).edges,
+            title: JSON.parse(lastPushedRef.current).title,
+          },
+        ]
+        return next.length > HISTORY_LIMIT ? next.slice(-HISTORY_LIMIT) : next
+      })
+      // New forward-branch invalidates redo.
+      setFuture([])
+      lastPushedRef.current = fingerprint
+    }, HISTORY_DEBOUNCE_MS)
+    return () => clearTimeout(handle)
+  }, [nodes, edges, title, initialNodes, initialEdges, initialTitle])
 
   // Any change → mark dirty. Autosave kicks in on a debounce below.
   useEffect(() => {
@@ -96,9 +162,6 @@ function CanvasEditorInner({
     if (!dirtyRef.current) return
     setSaving(true)
     try {
-      // React Flow's Node/Edge types are looser than our CanvasNode/CanvasEdge
-      // (Node.type is optional, Edge.label is ReactNode). We only ever set
-      // typed nodes and text labels, so the cast is safe at runtime.
       await saveCanvas({
         id: canvasId,
         title,
@@ -114,7 +177,6 @@ function CanvasEditorInner({
     }
   }, [canvasId, title, nodes, edges])
 
-  // Autosave: 1.5s after the last change.
   useEffect(() => {
     if (!dirty) return
     const handle = setTimeout(persist, 1500)
@@ -129,9 +191,6 @@ function CanvasEditorInner({
 
   const addNode = useCallback(
     (preset: (typeof ADDABLE_NODES)[number]) => {
-      // Drop new nodes near the current viewport center-ish; React Flow's
-      // `screenToFlowPosition` would need the container ref — for MVP a
-      // simple offset that avoids stacking is enough.
       const offset = (nodes.length % 6) * 40
       const newNode: Node = {
         id: `${preset.type}-${Date.now()}`,
@@ -143,6 +202,60 @@ function CanvasEditorInner({
     },
     [nodes.length, setNodes],
   )
+
+  const undo = useCallback(() => {
+    setPast((prev) => {
+      if (prev.length === 0) return prev
+      const previous = prev[prev.length - 1]!
+      setFuture((f) => [{ nodes, edges, title }, ...f].slice(0, HISTORY_LIMIT))
+      applyingHistoryRef.current = true
+      setNodes(previous.nodes)
+      setEdges(previous.edges)
+      setTitle(previous.title)
+      lastPushedRef.current = JSON.stringify(previous)
+      return prev.slice(0, -1)
+    })
+  }, [nodes, edges, title, setNodes, setEdges])
+
+  const redo = useCallback(() => {
+    setFuture((prev) => {
+      if (prev.length === 0) return prev
+      const nextState = prev[0]!
+      setPast((p) => [...p, { nodes, edges, title }].slice(-HISTORY_LIMIT))
+      applyingHistoryRef.current = true
+      setNodes(nextState.nodes)
+      setEdges(nextState.edges)
+      setTitle(nextState.title)
+      lastPushedRef.current = JSON.stringify(nextState)
+      return prev.slice(1)
+    })
+  }, [nodes, edges, title, setNodes, setEdges])
+
+  // Keyboard shortcuts: Cmd/Ctrl+Z undo, Cmd/Ctrl+Shift+Z (or Cmd/Ctrl+Y) redo.
+  // Guarded so we don't hijack shortcuts inside inputs — users type in the
+  // node text areas + title bar and expect the browser's native undo there.
+  useEffect(() => {
+    function isEditableTarget(target: EventTarget | null): boolean {
+      const el = target as HTMLElement | null
+      if (!el) return false
+      const tag = el.tagName
+      return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable
+    }
+    function onKey(e: KeyboardEvent) {
+      const mod = e.metaKey || e.ctrlKey
+      if (!mod) return
+      if (isEditableTarget(e.target)) return
+      if (e.key === 'z' && !e.shiftKey) {
+        e.preventDefault()
+        undo()
+      } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+        e.preventDefault()
+        redo()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [undo, redo])
 
   const exportJson = useCallback(() => {
     const payload = {
@@ -160,6 +273,59 @@ function CanvasEditorInner({
     URL.revokeObjectURL(url)
     toast.success('Downloaded canvas JSON.')
   }, [title, nodes, edges])
+
+  const { getNodesBounds, getViewport } = useReactFlow()
+
+  const exportPng = useCallback(async () => {
+    setExportingPng(true)
+    try {
+      // Grab the actual React Flow viewport DOM so the background + node
+      // shells render into the image. `.react-flow__viewport` is the
+      // transformed layer that holds nodes at their true positions.
+      const viewportEl = document.querySelector<HTMLElement>('.react-flow__viewport')
+      if (!viewportEl) throw new Error('React Flow viewport not found')
+
+      // Size the exported image to the bounding box of all nodes (padded)
+      // rather than the current on-screen viewport, so the export captures
+      // the whole plan even if the user is zoomed into one corner.
+      const bounds = getNodesBounds(nodes)
+      const padding = 40
+      const width = Math.max(400, Math.round(bounds.width + padding * 2))
+      const height = Math.max(300, Math.round(bounds.height + padding * 2))
+      const viewport = getViewport()
+
+      // Temporarily override the transform to render at 1:1 at the bounds
+      // origin. html-to-image reads the DOM as-is, so we mutate → snap →
+      // restore.
+      const previousTransform = viewportEl.style.transform
+      viewportEl.style.transform = `translate(${-bounds.x + padding}px, ${-bounds.y + padding}px) scale(1)`
+
+      const dataUrl = await toPng(viewportEl, {
+        width,
+        height,
+        backgroundColor: getComputedStyle(document.body).getPropertyValue('--surface') || '#ffffff',
+        pixelRatio: 2,
+        style: {
+          width: `${width}px`,
+          height: `${height}px`,
+        },
+      })
+      viewportEl.style.transform = previousTransform
+      // Nudge React Flow to re-apply its transform.
+      window.dispatchEvent(new Event('resize'))
+      void viewport
+
+      const a = document.createElement('a')
+      a.href = dataUrl
+      a.download = `${title.replace(/[^a-z0-9-_]+/gi, '-').toLowerCase() || 'canvas'}.png`
+      a.click()
+      toast.success('Downloaded canvas PNG.')
+    } catch (err) {
+      toast.error((err as Error).message ?? 'PNG export failed')
+    } finally {
+      setExportingPng(false)
+    }
+  }, [title, nodes, getNodesBounds, getViewport])
 
   const onTogglePublish = useCallback(async () => {
     const next = !isPublic
@@ -195,6 +361,28 @@ function CanvasEditorInner({
           placeholder="Plan title"
           className="min-w-[200px] flex-1 rounded border border-border bg-surface px-2 py-1 text-sm text-ink focus:border-brand focus:outline-none"
         />
+
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={undo}
+          disabled={past.length === 0}
+          aria-label="Undo"
+          title="Undo (Ctrl/⌘+Z)"
+        >
+          <Undo2 className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={redo}
+          disabled={future.length === 0}
+          aria-label="Redo"
+          title="Redo (Ctrl/⌘+Shift+Z)"
+        >
+          <Redo2 className="h-3.5 w-3.5" />
+        </Button>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button size="sm" variant="secondary">
@@ -211,9 +399,26 @@ function CanvasEditorInner({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        <Button size="sm" variant="ghost" onClick={exportJson}>
-          <Download className="h-3.5 w-3.5" /> Export JSON
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button size="sm" variant="ghost">
+              <Download className="h-3.5 w-3.5" /> Export
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={exportJson}>
+              <Download className="mr-2 h-3.5 w-3.5" /> JSON
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={exportPng} disabled={exportingPng}>
+              {exportingPng ? (
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <FileImage className="mr-2 h-3.5 w-3.5" />
+              )}
+              PNG
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <Button size="sm" variant={isPublic ? 'primary' : 'secondary'} onClick={onTogglePublish}>
           <Share2 className="h-3.5 w-3.5" /> {isPublic ? 'Unpublish' : 'Publish + copy link'}
@@ -254,8 +459,6 @@ function CanvasEditorInner({
   )
 }
 
-/** Public wrapper — React Flow needs its provider higher than the surface
- *  when custom nodes call `useReactFlow()`. */
 export function CanvasEditor(props: Props) {
   return (
     <ReactFlowProvider>
