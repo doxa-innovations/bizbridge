@@ -18,6 +18,11 @@ export interface CanvasNode {
   type: CanvasNodeType
   position: { x: number; y: number }
   data: Record<string, unknown>
+  /** User-set explicit dimensions (via the NodeResizer). Optional — a
+   *  node that has never been resized just uses its component's default
+   *  intrinsic size. */
+  width?: number | null
+  height?: number | null
 }
 
 export interface CanvasEdge {

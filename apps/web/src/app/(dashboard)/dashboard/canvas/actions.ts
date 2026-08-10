@@ -43,41 +43,55 @@ export async function createCanvas(formData: FormData) {
   redirect(`/dashboard/canvas/${doc.id}`)
 }
 
-/** Save nodes + edges + title back onto the canvas. Owner-only. */
+/** Save nodes + edges + title back onto the canvas. Owner-only.
+ *  Returns a discriminated union instead of throwing so a transient
+ *  server-side render failure never surfaces as an opaque "Server
+ *  Components render" red toast in the client — the caller decides how
+ *  to retry / display the error. */
 export async function saveCanvas(input: {
   id: number
   title: string
   nodes: CanvasNode[]
   edges: CanvasEdge[]
-}) {
-  const user = await requireUser()
-  const payload = await getPayloadClient()
-  const existing = await payload.findByID({
-    collection: 'planning-canvases',
-    id: input.id,
-    overrideAccess: true,
-  })
-  if (existing.user_id !== user.id) throw new Error('Not authorised')
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const user = await requireUser()
+    const payload = await getPayloadClient()
+    const existing = await payload.findByID({
+      collection: 'planning-canvases',
+      id: input.id,
+      overrideAccess: true,
+    })
+    if (existing.user_id !== user.id) {
+      return { ok: false, error: 'Not authorised' }
+    }
 
-  await payload.update({
-    collection: 'planning-canvases',
-    id: input.id,
-    data: {
-      title: input.title.slice(0, 200) || 'Untitled plan',
-      nodes: input.nodes,
-      edges: input.edges,
-    },
-    overrideAccess: true,
-  })
+    await payload.update({
+      collection: 'planning-canvases',
+      id: input.id,
+      data: {
+        title: input.title.slice(0, 200) || 'Untitled plan',
+        nodes: input.nodes,
+        edges: input.edges,
+      },
+      overrideAccess: true,
+    })
 
-  // Intentionally NOT revalidating the /dashboard/canvas/[id] path here.
-  // The editor client already holds the fresh state — a revalidate would
-  // trigger a background server-component re-render on every autosave
-  // (fires every 1.5s while the user is editing), which was the source
-  // of the "Server Components render" red toast users kept seeing. We
-  // only revalidate the list so the gallery card timestamps update.
-  revalidatePath('/dashboard/canvas')
-  return { ok: true }
+    // Deliberately NOT calling revalidatePath here. Autosave fires on
+    // every user edit (1.5s debounce). Revalidating either the editor
+    // route or the list route in the background triggers a fresh
+    // Server Component render — if THAT render throws for any reason
+    // (Payload hiccup, session refresh mid-request, etc.) Next.js
+    // reports "Server Components render" back through the action
+    // response and the client shows an opaque red toast even though
+    // the save itself succeeded. The list card timestamp is stale for
+    // a few seconds until the user navigates back, which is fine.
+    return { ok: true }
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error('[saveCanvas] failed', err)
+    return { ok: false, error: (err as Error).message ?? 'unknown' }
+  }
 }
 
 /** Toggle is_public. Minting the share_token is handled by the beforeChange

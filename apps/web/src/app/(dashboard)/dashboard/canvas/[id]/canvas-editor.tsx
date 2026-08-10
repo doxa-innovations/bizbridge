@@ -63,6 +63,34 @@ const HISTORY_LIMIT = 50
 const HISTORY_DEBOUNCE_MS = 400
 const AUTOSAVE_DEBOUNCE_MS = 1500
 
+/**
+ * Compute a stable fingerprint of the user-facing canvas state. Ignores
+ * React Flow's internal bookkeeping — `measured` dimensions from its
+ * ResizeObserver, `dragging` / `selected` flags, `positionAbsolute` —
+ * so those don't count as "the user changed something" and don't
+ * trigger autosave or history-stack pushes.
+ */
+function fingerprint(nodes: Node[], edges: Edge[], title: string): string {
+  return JSON.stringify({
+    title,
+    n: nodes.map((n) => ({
+      id: n.id,
+      type: n.type ?? null,
+      x: Math.round(n.position?.x ?? 0),
+      y: Math.round(n.position?.y ?? 0),
+      w: n.width ?? null,
+      h: n.height ?? null,
+      data: n.data ?? {},
+    })),
+    e: edges.map((e) => ({
+      id: e.id,
+      s: e.source,
+      t: e.target,
+      l: typeof e.label === 'string' ? e.label : null,
+    })),
+  })
+}
+
 function CanvasEditorInner({
   canvasId,
   initialTitle,
@@ -94,9 +122,11 @@ function CanvasEditorInner({
   const [past, setPast] = useState<Snapshot[]>([])
   const [future, setFuture] = useState<Snapshot[]>([])
   const applyingHistoryRef = useRef(false)
-  const lastPushedRef = useRef<string>(
-    JSON.stringify({ nodes: initialNodes, edges: initialEdges, title: initialTitle }),
-  )
+  const lastSnapshotRef = useRef<Snapshot>({
+    nodes: initialNodes,
+    edges: initialEdges,
+    title: initialTitle,
+  })
 
   useEffect(() => {
     if (!mountedRef.current) return
@@ -105,54 +135,68 @@ function CanvasEditorInner({
       return
     }
     const handle = setTimeout(() => {
-      const fingerprint = JSON.stringify({ nodes, edges, title })
-      if (fingerprint === lastPushedRef.current) return
-      // Only mark dirty when the change is real — this is what gates
-      // autosave, so we avoid firing on the initial mount.
+      const currentFp = fingerprint(nodes, edges, title)
+      const lastFp = fingerprint(
+        lastSnapshotRef.current.nodes,
+        lastSnapshotRef.current.edges,
+        lastSnapshotRef.current.title,
+      )
+      if (currentFp === lastFp) return
+      // Real user-facing change — push history and mark dirty. RF-internal
+      // churn (measured dimensions, dragging flag, selection state) is
+      // filtered out by `fingerprint` so it doesn't spam autosave / history.
       setDirty(true)
       dirtyRef.current = true
       setPast((prev) => {
-        const previous = JSON.parse(lastPushedRef.current)
-        const next = [...prev, previous]
+        const next = [...prev, lastSnapshotRef.current]
         return next.length > HISTORY_LIMIT ? next.slice(-HISTORY_LIMIT) : next
       })
       setFuture([])
-      lastPushedRef.current = fingerprint
+      lastSnapshotRef.current = { nodes, edges, title }
     }, HISTORY_DEBOUNCE_MS)
     return () => clearTimeout(handle)
   }, [nodes, edges, title])
 
-  /** Persist with retry + exponential backoff. A single failed save is
-   *  common on flaky wifi; losing 20 minutes of planning to a transient
-   *  network blip is not. On every failure we retry up to 3 more times
-   *  (2s → 4s → 8s) and only toast if all attempts fail — leaving
-   *  dirtyRef.current = true so the next user edit re-triggers a save. */
+  /** Persist with retry + exponential backoff. saveCanvas now returns a
+   *  discriminated union instead of throwing, so we branch on `ok`
+   *  rather than try/catch. On persistent failure we toast once and
+   *  leave dirtyRef true so the next real edit re-triggers a save. */
   const persist = useCallback(async () => {
     if (!dirtyRef.current) return
     setSaving(true)
 
     const attempt = async (n: number): Promise<void> => {
-      try {
-        await saveCanvas({
-          id: canvasId,
-          title,
-          nodes: nodes as unknown as CanvasNode[],
-          edges: edges as unknown as CanvasEdge[],
-        })
+      const res = await saveCanvas({
+        id: canvasId,
+        title,
+        nodes: nodes.map((node) => ({
+          id: node.id,
+          type: (node.type ?? 'idea') as CanvasNode['type'],
+          position: node.position,
+          data: (node.data ?? {}) as Record<string, unknown>,
+          width: node.width ?? null,
+          height: node.height ?? null,
+        })),
+        edges: edges.map((edge) => ({
+          id: edge.id,
+          source: edge.source,
+          target: edge.target,
+          label: typeof edge.label === 'string' ? edge.label : undefined,
+        })),
+      })
+      if (res.ok) {
         dirtyRef.current = false
         setDirty(false)
-      } catch (err) {
-        if (n >= 3) {
-          toast.error(
-            `Save failed — will retry on your next edit. (${(err as Error).message ?? 'unknown'})`,
-          )
-          return
-        }
-        // 2s → 4s → 8s
-        const backoffMs = 2000 * 2 ** n
-        await new Promise((r) => setTimeout(r, backoffMs))
-        return attempt(n + 1)
+        return
       }
+      if (n >= 3) {
+        toast.error(`Save failed — will retry on your next edit. (${res.error})`)
+        return
+      }
+      // 2s → 4s → 8s
+      const backoffMs = 2000 * 2 ** n
+      await new Promise((r) => setTimeout(r, backoffMs))
+      return attempt(n + 1)
     }
 
     try {
@@ -225,8 +269,7 @@ function CanvasEditorInner({
       setNodes(previous.nodes)
       setEdges(previous.edges)
       setTitle(previous.title)
-      lastPushedRef.current = JSON.stringify(previous)
-      // Undoing IS a change worth saving.
+      lastSnapshotRef.current = previous
       setDirty(true)
       dirtyRef.current = true
       return prev.slice(0, -1)
@@ -242,7 +285,7 @@ function CanvasEditorInner({
       setNodes(nextState.nodes)
       setEdges(nextState.edges)
       setTitle(nextState.title)
-      lastPushedRef.current = JSON.stringify(nextState)
+      lastSnapshotRef.current = nextState
       setDirty(true)
       dirtyRef.current = true
       return prev.slice(1)
