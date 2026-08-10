@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import Link from 'next/link'
 import {
   Background,
   Controls,
@@ -18,17 +19,11 @@ import {
 import '@xyflow/react/dist/style.css'
 import { toPng } from 'html-to-image'
 import {
-  BookOpen,
-  Calendar,
-  CheckSquare,
-  Contact as ContactIcon,
+  ArrowLeft,
   Download,
   FileImage,
-  FileQuestion,
-  Layers,
-  Lightbulb,
+  Layers3,
   Loader2,
-  Plus,
   Redo2,
   Save,
   Share2,
@@ -43,9 +38,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import type { CanvasEdge, CanvasNode, CanvasNodeType } from '@/lib/canvas-template'
+import type { CanvasEdge, CanvasNode } from '@/lib/canvas-template'
 import { saveCanvas, togglePublish } from '../actions'
 import { NODE_TYPES } from './node-types'
+import { NodePalette, type PaletteEntry } from './node-picker'
 
 interface Props {
   canvasId: number
@@ -56,23 +52,6 @@ interface Props {
   initialShareToken: string | null
 }
 
-const ADDABLE_NODES: Array<{
-  type: CanvasNodeType
-  label: string
-  icon: React.ReactNode
-  defaultData: Record<string, unknown>
-}> = [
-  { type: 'idea', label: 'Idea', icon: <Lightbulb className="h-3.5 w-3.5" />, defaultData: { text: '' } },
-  { type: 'task', label: 'Task', icon: <CheckSquare className="h-3.5 w-3.5" />, defaultData: { text: '', done: false } },
-  { type: 'question', label: 'Question', icon: <FileQuestion className="h-3.5 w-3.5" />, defaultData: { text: '' } },
-  { type: 'contact', label: 'Contact', icon: <ContactIcon className="h-3.5 w-3.5" />, defaultData: { name: '', role: '', contact: '' } },
-  { type: 'doc', label: 'Doc', icon: <BookOpen className="h-3.5 w-3.5" />, defaultData: { title: '', source: '' } },
-  { type: 'milestone', label: 'Milestone', icon: <Calendar className="h-3.5 w-3.5" />, defaultData: { text: '', target: null } },
-  { type: 'sector', label: 'Sector (add MOR code)', icon: <Layers className="h-3.5 w-3.5" />, defaultData: { morCode: '', title: '', slug: null } },
-]
-
-/** History entry — full snapshot of everything the user can change.
- *  Kept small enough that a 50-deep stack is cheap. */
 interface Snapshot {
   nodes: Node[]
   edges: Edge[]
@@ -80,10 +59,8 @@ interface Snapshot {
 }
 
 const HISTORY_LIMIT = 50
-/** Debounce for coalescing rapid changes (drag, typing) into one history
- *  entry. Small enough to feel responsive on Undo, large enough that
- *  dragging a node doesn't push 60 entries a second. */
 const HISTORY_DEBOUNCE_MS = 400
+const AUTOSAVE_DEBOUNCE_MS = 1500
 
 function CanvasEditorInner({
   canvasId,
@@ -101,61 +78,47 @@ function CanvasEditorInner({
   const [isPublic, setIsPublic] = useState(initialIsPublic)
   const [shareToken, setShareToken] = useState(initialShareToken)
   const [exportingPng, setExportingPng] = useState(false)
-  const dirtyRef = useRef(false)
 
-  // Undo/redo stacks. `applyingHistoryRef` prevents the state effect below
-  // from re-pushing to history when we're the ones setting state via
-  // undo/redo. `initialisedRef` skips the first tick so we don't record the
-  // initial mount as a snapshot.
+  // Autosave / history bookkeeping: skip the first tick after mount so we
+  // don't push an empty snapshot or fire an autosave against unchanged
+  // state (which was throwing a Server Components error toast when the
+  // route was freshly opened).
+  const dirtyRef = useRef(false)
+  const mountedRef = useRef(false)
+  useEffect(() => {
+    // Fires once after mount; subsequent renders skip via the ref guard.
+    mountedRef.current = true
+  }, [])
+
   const [past, setPast] = useState<Snapshot[]>([])
   const [future, setFuture] = useState<Snapshot[]>([])
   const applyingHistoryRef = useRef(false)
-  const initialisedRef = useRef(false)
-  const lastPushedRef = useRef<string>('')
+  const lastPushedRef = useRef<string>(
+    JSON.stringify({ nodes: initialNodes, edges: initialEdges, title: initialTitle }),
+  )
 
   useEffect(() => {
-    if (!initialisedRef.current) {
-      // Seed the "last pushed" fingerprint with the initial state so a no-op
-      // change on mount doesn't trigger a snapshot.
-      lastPushedRef.current = JSON.stringify({
-        nodes: initialNodes,
-        edges: initialEdges,
-        title: initialTitle,
-      })
-      initialisedRef.current = true
-      return
-    }
+    if (!mountedRef.current) return
     if (applyingHistoryRef.current) {
-      // Coming out of an undo/redo — flip the flag back off, don't push.
       applyingHistoryRef.current = false
       return
     }
-    // Coalesce rapid changes (drag frames, keystrokes) into one entry.
     const handle = setTimeout(() => {
       const fingerprint = JSON.stringify({ nodes, edges, title })
       if (fingerprint === lastPushedRef.current) return
+      // Only mark dirty when the change is real — this is what gates
+      // autosave, so we avoid firing on the initial mount.
+      setDirty(true)
+      dirtyRef.current = true
       setPast((prev) => {
-        const next = [
-          ...prev,
-          {
-            nodes: JSON.parse(lastPushedRef.current).nodes,
-            edges: JSON.parse(lastPushedRef.current).edges,
-            title: JSON.parse(lastPushedRef.current).title,
-          },
-        ]
+        const previous = JSON.parse(lastPushedRef.current)
+        const next = [...prev, previous]
         return next.length > HISTORY_LIMIT ? next.slice(-HISTORY_LIMIT) : next
       })
-      // New forward-branch invalidates redo.
       setFuture([])
       lastPushedRef.current = fingerprint
     }, HISTORY_DEBOUNCE_MS)
     return () => clearTimeout(handle)
-  }, [nodes, edges, title, initialNodes, initialEdges, initialTitle])
-
-  // Any change → mark dirty. Autosave kicks in on a debounce below.
-  useEffect(() => {
-    setDirty(true)
-    dirtyRef.current = true
   }, [nodes, edges, title])
 
   const persist = useCallback(async () => {
@@ -179,28 +142,56 @@ function CanvasEditorInner({
 
   useEffect(() => {
     if (!dirty) return
-    const handle = setTimeout(persist, 1500)
+    const handle = setTimeout(persist, AUTOSAVE_DEBOUNCE_MS)
     return () => clearTimeout(handle)
   }, [dirty, persist])
 
   const onConnect = useCallback(
     (connection: Connection) =>
-      setEdges((eds) => addEdge({ ...connection, id: `e-${Date.now()}` }, eds)),
+      setEdges((eds) =>
+        addEdge(
+          { ...connection, id: `e-${Date.now()}`, animated: true },
+          eds,
+        ),
+      ),
     [setEdges],
   )
 
-  const addNode = useCallback(
-    (preset: (typeof ADDABLE_NODES)[number]) => {
-      const offset = (nodes.length % 6) * 40
+  const { getViewport, screenToFlowPosition, fitView, setViewport } = useReactFlow()
+
+  const dropPositionForNewNode = useCallback(() => {
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1200
+    const h = typeof window !== 'undefined' ? window.innerHeight : 800
+    const jitter = () => Math.round((Math.random() - 0.5) * 60)
+    return screenToFlowPosition({ x: w / 2 + jitter(), y: h / 2 + jitter() })
+  }, [screenToFlowPosition])
+
+  const addFromPalette = useCallback(
+    (entry: PaletteEntry) => {
       const newNode: Node = {
-        id: `${preset.type}-${Date.now()}`,
-        type: preset.type,
-        position: { x: 200 + offset, y: 200 + offset },
-        data: preset.defaultData,
+        id: `${entry.type}-${Date.now()}`,
+        type: entry.type,
+        position: dropPositionForNewNode(),
+        data: entry.defaultData,
+        selected: true,
       }
-      setNodes((n) => [...n, newNode])
+      setNodes((n) => [...n.map((x) => ({ ...x, selected: false })), newNode])
     },
-    [nodes.length, setNodes],
+    [dropPositionForNewNode, setNodes],
+  )
+
+  const addSectorNode = useCallback(
+    (sector: { morCode: string; title: string; slug: string }) => {
+      const newNode: Node = {
+        id: `sector-${sector.morCode}-${Date.now()}`,
+        type: 'sector',
+        position: dropPositionForNewNode(),
+        data: sector,
+        selected: true,
+      }
+      setNodes((n) => [...n.map((x) => ({ ...x, selected: false })), newNode])
+    },
+    [dropPositionForNewNode, setNodes],
   )
 
   const undo = useCallback(() => {
@@ -213,6 +204,9 @@ function CanvasEditorInner({
       setEdges(previous.edges)
       setTitle(previous.title)
       lastPushedRef.current = JSON.stringify(previous)
+      // Undoing IS a change worth saving.
+      setDirty(true)
+      dirtyRef.current = true
       return prev.slice(0, -1)
     })
   }, [nodes, edges, title, setNodes, setEdges])
@@ -227,13 +221,26 @@ function CanvasEditorInner({
       setEdges(nextState.edges)
       setTitle(nextState.title)
       lastPushedRef.current = JSON.stringify(nextState)
+      setDirty(true)
+      dirtyRef.current = true
       return prev.slice(1)
     })
   }, [nodes, edges, title, setNodes, setEdges])
 
-  // Keyboard shortcuts: Cmd/Ctrl+Z undo, Cmd/Ctrl+Shift+Z (or Cmd/Ctrl+Y) redo.
-  // Guarded so we don't hijack shortcuts inside inputs — users type in the
-  // node text areas + title bar and expect the browser's native undo there.
+  const deleteSelection = useCallback(() => {
+    setNodes((currentNodes) => {
+      const selectedIds = new Set(currentNodes.filter((n) => n.selected).map((n) => n.id))
+      if (selectedIds.size === 0) return currentNodes
+      setEdges((currentEdges) =>
+        currentEdges.filter(
+          (e) => !selectedIds.has(e.source) && !selectedIds.has(e.target) && !e.selected,
+        ),
+      )
+      return currentNodes.filter((n) => !selectedIds.has(n.id))
+    })
+    setEdges((currentEdges) => currentEdges.filter((e) => !e.selected))
+  }, [setNodes, setEdges])
+
   useEffect(() => {
     function isEditableTarget(target: EventTarget | null): boolean {
       const el = target as HTMLElement | null
@@ -242,28 +249,25 @@ function CanvasEditorInner({
       return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable
     }
     function onKey(e: KeyboardEvent) {
-      const mod = e.metaKey || e.ctrlKey
-      if (!mod) return
       if (isEditableTarget(e.target)) return
-      if (e.key === 'z' && !e.shiftKey) {
+      const mod = e.metaKey || e.ctrlKey
+      if (mod && e.key === 'z' && !e.shiftKey) {
         e.preventDefault()
         undo()
-      } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+      } else if (mod && ((e.key === 'z' && e.shiftKey) || e.key === 'y')) {
         e.preventDefault()
         redo()
+      } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault()
+        deleteSelection()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [undo, redo])
+  }, [undo, redo, deleteSelection])
 
   const exportJson = useCallback(() => {
-    const payload = {
-      title,
-      exportedAt: new Date().toISOString(),
-      nodes,
-      edges,
-    }
+    const payload = { title, exportedAt: new Date().toISOString(), nodes, edges }
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -274,46 +278,32 @@ function CanvasEditorInner({
     toast.success('Downloaded canvas JSON.')
   }, [title, nodes, edges])
 
-  const { getNodesBounds, getViewport } = useReactFlow()
-
   const exportPng = useCallback(async () => {
     setExportingPng(true)
     try {
-      // Grab the actual React Flow viewport DOM so the background + node
-      // shells render into the image. `.react-flow__viewport` is the
-      // transformed layer that holds nodes at their true positions.
-      const viewportEl = document.querySelector<HTMLElement>('.react-flow__viewport')
-      if (!viewportEl) throw new Error('React Flow viewport not found')
+      const paneEl = document.querySelector<HTMLElement>('.react-flow')
+      if (!paneEl) throw new Error('React Flow pane not found')
 
-      // Size the exported image to the bounding box of all nodes (padded)
-      // rather than the current on-screen viewport, so the export captures
-      // the whole plan even if the user is zoomed into one corner.
-      const bounds = getNodesBounds(nodes)
-      const padding = 40
-      const width = Math.max(400, Math.round(bounds.width + padding * 2))
-      const height = Math.max(300, Math.round(bounds.height + padding * 2))
-      const viewport = getViewport()
+      const savedViewport = getViewport()
+      fitView({ padding: 0.2, duration: 0 })
+      await new Promise((r) => requestAnimationFrame(() => r(null)))
 
-      // Temporarily override the transform to render at 1:1 at the bounds
-      // origin. html-to-image reads the DOM as-is, so we mutate → snap →
-      // restore.
-      const previousTransform = viewportEl.style.transform
-      viewportEl.style.transform = `translate(${-bounds.x + padding}px, ${-bounds.y + padding}px) scale(1)`
+      const bgColour =
+        getComputedStyle(document.body).getPropertyValue('background-color') || '#0b0b0b'
 
-      const dataUrl = await toPng(viewportEl, {
-        width,
-        height,
-        backgroundColor: getComputedStyle(document.body).getPropertyValue('--surface') || '#ffffff',
+      const dataUrl = await toPng(paneEl, {
+        backgroundColor: bgColour.trim() || '#0b0b0b',
         pixelRatio: 2,
-        style: {
-          width: `${width}px`,
-          height: `${height}px`,
+        filter: (node) => {
+          if (!(node instanceof HTMLElement)) return true
+          return !(
+            node.classList.contains('react-flow__minimap') ||
+            node.classList.contains('react-flow__controls')
+          )
         },
       })
-      viewportEl.style.transform = previousTransform
-      // Nudge React Flow to re-apply its transform.
-      window.dispatchEvent(new Event('resize'))
-      void viewport
+
+      setViewport(savedViewport, { duration: 0 })
 
       const a = document.createElement('a')
       a.href = dataUrl
@@ -325,7 +315,7 @@ function CanvasEditorInner({
     } finally {
       setExportingPng(false)
     }
-  }, [title, nodes, getNodesBounds, getViewport])
+  }, [title, getViewport, fitView, setViewport])
 
   const onTogglePublish = useCallback(async () => {
     const next = !isPublic
@@ -352,9 +342,15 @@ function CanvasEditorInner({
   const nodeTypes = useMemo(() => NODE_TYPES, [])
 
   return (
-    <div className="flex h-full flex-col overflow-hidden rounded-lg border border-border bg-surface">
+    <div className="flex h-full flex-col overflow-hidden bg-surface">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface-2 px-3 py-2">
+        <Button asChild size="sm" variant="ghost" className="shrink-0">
+          <Link href="/dashboard/canvas">
+            <ArrowLeft className="h-3.5 w-3.5" /> Exit
+          </Link>
+        </Button>
+
         <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -362,42 +358,31 @@ function CanvasEditorInner({
           className="min-w-[200px] flex-1 rounded border border-border bg-surface px-2 py-1 text-sm text-ink focus:border-brand focus:outline-none"
         />
 
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={undo}
-          disabled={past.length === 0}
-          aria-label="Undo"
-          title="Undo (Ctrl/⌘+Z)"
-        >
-          <Undo2 className="h-3.5 w-3.5" />
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={redo}
-          disabled={future.length === 0}
-          aria-label="Redo"
-          title="Redo (Ctrl/⌘+Shift+Z)"
-        >
-          <Redo2 className="h-3.5 w-3.5" />
-        </Button>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="sm" variant="secondary">
-              <Plus className="h-3.5 w-3.5" /> Add node
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            {ADDABLE_NODES.map((preset) => (
-              <DropdownMenuItem key={preset.type} onSelect={() => addNode(preset)}>
-                <span className="mr-2 text-ink-muted">{preset.icon}</span>
-                {preset.label}
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center rounded-md border border-border bg-surface">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={undo}
+            disabled={past.length === 0}
+            aria-label="Undo"
+            title="Undo (Ctrl/⌘+Z)"
+            className="rounded-r-none"
+          >
+            <Undo2 className="h-3.5 w-3.5" />
+          </Button>
+          <div className="h-5 w-px bg-border" />
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={redo}
+            disabled={future.length === 0}
+            aria-label="Redo"
+            title="Redo (Ctrl/⌘+Shift+Z)"
+            className="rounded-l-none"
+          >
+            <Redo2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -437,23 +422,53 @@ function CanvasEditorInner({
         ) : null}
       </div>
 
-      {/* Flow surface */}
-      <div className="min-h-0 flex-1">
-        <ReactFlow
-          nodes={nodes}
-          edges={edges}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.2 }}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background gap={20} size={1} />
-          <MiniMap zoomable pannable className="!bg-surface !border-border" />
-          <Controls className="!bg-surface !border-border [&_button]:!bg-surface [&_button]:!border-border [&_button]:!text-ink" />
-        </ReactFlow>
+      {/* Palette (left) + Flow surface (right) */}
+      <div className="flex min-h-0 flex-1">
+        <NodePalette onAdd={addFromPalette} onAddSector={addSectorNode} />
+
+        <div className="relative min-h-0 flex-1">
+          <ReactFlow
+            nodes={nodes}
+            edges={edges}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            nodeTypes={nodeTypes}
+            fitView
+            fitViewOptions={{ padding: 0.2 }}
+            proOptions={{ hideAttribution: true }}
+            snapToGrid
+            snapGrid={[20, 20]}
+            deleteKeyCode={null}
+            selectionOnDrag
+            multiSelectionKeyCode={['Meta', 'Control']}
+            panOnDrag={[1, 2]}
+            connectionRadius={40}
+          >
+            <Background gap={20} size={1} />
+            <MiniMap zoomable pannable className="!bg-surface !border-border" />
+            <Controls className="!bg-surface !border-border [&_button]:!bg-surface [&_button]:!border-border [&_button]:!text-ink" />
+          </ReactFlow>
+
+          {nodes.length === 0 ? (
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="pointer-events-auto max-w-sm rounded-xl border border-dashed border-border bg-surface/80 p-6 text-center shadow-lg backdrop-blur">
+                <span className="mx-auto grid h-10 w-10 place-items-center rounded-full bg-brand/15 text-brand">
+                  <Layers3 className="h-5 w-5" />
+                </span>
+                <p className="mt-3 text-sm font-semibold text-ink">Start with a block</p>
+                <p className="mt-1 text-xs text-ink-muted">
+                  Pick a Sector, Idea, or Task from the palette on the left. Once you have two
+                  blocks, drag from the small dot on the right of one to the dot on the left of
+                  the other to connect them.
+                </p>
+                <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
+                  ⌘Z undo · ⌫ delete · space+drag pan
+                </p>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
     </div>
   )

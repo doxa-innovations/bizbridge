@@ -16,8 +16,10 @@ import {
 import { cn } from '@/lib/cn'
 import type { CanvasNodeType } from '@/lib/canvas-template'
 
-/** Shared visual chrome for every node type — the outline, both handles,
- *  the header row with an icon + label, plus a hover-only delete button. */
+/** Shared visual chrome for every node type — outline, both handles,
+ *  header row (icon + label + hover-only delete). Selected nodes get a
+ *  visible brand-coloured ring; the ring is opt-in via React Flow's
+ *  built-in `.selected` class which the surrounding wrapper carries. */
 function NodeChrome({
   icon,
   label,
@@ -35,12 +37,23 @@ function NodeChrome({
   return (
     <div
       className={cn(
+        // The wrapper gets a subtle default border. Selected nodes are
+        // targeted by the global CSS rule below — see canvas.css.
         'group relative min-w-[220px] max-w-[280px] rounded-lg border border-border bg-surface shadow-sm transition-all',
+        'hover:border-brand/40',
         className,
       )}
     >
-      <Handle type="target" position={Position.Left} className="!bg-brand" />
-      <Handle type="source" position={Position.Right} className="!bg-brand" />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className="!h-2.5 !w-2.5 !border-2 !border-surface !bg-brand"
+      />
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!h-2.5 !w-2.5 !border-2 !border-surface !bg-brand"
+      />
       <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1.5">
         <div className="flex items-center gap-1.5 text-ink-muted [&_svg]:h-3 [&_svg]:w-3">
           {icon}
