@@ -26,6 +26,7 @@ import { SavedReports } from './payload/collections/SavedReports'
 import { UserChecklists } from './payload/collections/UserChecklists'
 import { ReportRequests } from './payload/collections/ReportRequests'
 import { NewsSources } from './payload/collections/NewsSources'
+import { PlanningCanvases } from './payload/collections/PlanningCanvases'
 
 import { SiteSettings } from './payload/globals/SiteSettings'
 import { HomepageContent } from './payload/globals/HomepageContent'
@@ -93,6 +94,7 @@ export default buildConfig({
     UserChecklists,
     ReportRequests,
     NewsSources,
+    PlanningCanvases,
   ],
   globals: [SiteSettings, HomepageContent],
   editor: lexicalEditor(),

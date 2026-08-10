@@ -10,6 +10,7 @@ import {
   Home,
   Inbox,
   Layers,
+  Layers3,
   Library,
   Lightbulb,
   ListTodo,
@@ -53,6 +54,7 @@ const EXPLORE: SidebarSection = {
 const WORKSPACE: SidebarSection = {
   title: 'My workspace',
   items: [
+    { href: '/dashboard/canvas', label: 'Canvas', icon: Layers3 },
     { href: '/dashboard/checklist', label: 'Checklists', icon: ListTodo },
     { href: '/dashboard/reports', label: 'Reports', icon: FileBarChart },
     { href: '/dashboard/request-data', label: 'Request a doc', icon: FilePlus2 },

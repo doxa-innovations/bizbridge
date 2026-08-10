@@ -87,6 +87,7 @@ export interface Config {
     'user-checklists': UserChecklist;
     'report-requests': ReportRequest;
     'news-sources': NewsSource;
+    'planning-canvases': PlanningCanvase;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -114,6 +115,7 @@ export interface Config {
     'user-checklists': UserChecklistsSelect<false> | UserChecklistsSelect<true>;
     'report-requests': ReportRequestsSelect<false> | ReportRequestsSelect<true>;
     'news-sources': NewsSourcesSelect<false> | NewsSourcesSelect<true>;
+    'planning-canvases': PlanningCanvasesSelect<false> | PlanningCanvasesSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -787,6 +789,50 @@ export interface NewsSource {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "planning-canvases".
+ */
+export interface PlanningCanvase {
+  id: number;
+  user_id: string;
+  title: string;
+  template?: ('blank' | 'onboarding') | null;
+  /**
+   * React Flow node array — [{ id, type, position: {x,y}, data: {...} }].
+   */
+  nodes:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * React Flow edge array — [{ id, source, target, label? }].
+   */
+  edges:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  /**
+   * When true, anyone with the share_token can view (read-only).
+   */
+  is_public?: boolean | null;
+  /**
+   * Auto-generated on first publish.
+   */
+  share_token?: string | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -888,6 +934,10 @@ export interface PayloadLockedDocument {
     | ({
         relationTo: 'news-sources';
         value: number | NewsSource;
+      } | null)
+    | ({
+        relationTo: 'planning-canvases';
+        value: number | PlanningCanvase;
       } | null);
   globalSlug?: string | null;
   user: {
@@ -1357,6 +1407,21 @@ export interface NewsSourcesSelect<T extends boolean = true> {
   is_active?: T;
   allow_scrape?: T;
   subscribers?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "planning-canvases_select".
+ */
+export interface PlanningCanvasesSelect<T extends boolean = true> {
+  user_id?: T;
+  title?: T;
+  template?: T;
+  nodes?: T;
+  edges?: T;
+  is_public?: T;
+  share_token?: T;
   updatedAt?: T;
   createdAt?: T;
 }

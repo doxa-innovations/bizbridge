@@ -344,7 +344,7 @@ export default async function DashboardPage() {
           body={tierMeta ? tierMeta.vibe : 'Pick a budget to see sector shortlists tuned to that range.'}
           cta={{
             label: tierMeta ? 'Explore picks' : 'Pick a budget',
-            href: `/suggest${config.suggestQuery}`,
+            href: `/dashboard/suggest${config.suggestQuery}`,
           }}
         />
         <TrioCard
@@ -410,7 +410,7 @@ export default async function DashboardPage() {
             icon={<Bookmark className="h-5 w-5" />}
             title="You haven't bookmarked a sector yet"
             body="Run the 5-question wizard to get 3 picks in under a minute — or browse the 519-sector catalog."
-            primary={{ label: 'Run the wizard', href: '/wizard' }}
+            primary={{ label: 'Run the wizard', href: '/dashboard/wizard' }}
             secondary={{ label: 'Browse sectors', href: '/dashboard/sectors' }}
           />
         ) : (
