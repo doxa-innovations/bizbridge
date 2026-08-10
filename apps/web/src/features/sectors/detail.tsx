@@ -34,16 +34,19 @@ import { BookmarkButton } from '@/components/sectors/bookmark-button'
  * uses `/sectors`, the dashboard shell uses `/dashboard/sectors`, so a user
  * inside the dashboard never gets bounced back out to the marketing site.
  *
- * Tool CTAs (`/checklist`, `/calculator`, `/compare`, `/experts`) intentionally
- * stay pointing at the marketing routes for now — the dashboard-shell copies
- * of those tools land in follow-up commits and this file will be revisited to
- * add an `appBase` prop then.
+ * `appBase` controls where the tool CTAs (Setup checklist, Estimate costs,
+ * Compare) point — `''` (marketing) resolves to `/checklist` etc., while
+ * `/dashboard` resolves to `/dashboard/checklist` etc. Kept separate from
+ * `basePath` because those tool routes live at a different depth than the
+ * sector routes.
  */
 export interface SectorDetailFeatureProps {
   slug: string
   /** Base path for sibling sector links. `/sectors` (marketing) or
    *  `/dashboard/sectors` (dashboard). */
   basePath?: string
+  /** Prefix for sibling-tool CTAs. `''` (marketing) or `/dashboard`. */
+  appBase?: string
 }
 
 async function fetchSectorHead(slug: string) {
@@ -74,6 +77,7 @@ export async function fetchSectorForMetadata(slug: string) {
 export async function SectorDetailFeature({
   slug,
   basePath = '/sectors',
+  appBase = '',
 }: SectorDetailFeatureProps) {
   const [sector, currentUser] = await Promise.all([fetchSectorHead(slug), getCurrentUser()])
 
@@ -175,17 +179,17 @@ export async function SectorDetailFeature({
                   </a>
                 </Button>
                 <Button asChild variant="secondary">
-                  <Link href={`/checklist?sector=${sector.slug}`}>
+                  <Link href={`${appBase}/checklist?sector=${sector.slug}`}>
                     Setup checklist <ListChecks className="h-4 w-4" />
                   </Link>
                 </Button>
                 <Button asChild variant="ghost">
-                  <Link href={`/calculator?sector=${sector.slug}`}>
+                  <Link href={`${appBase}/calculator?sector=${sector.slug}`}>
                     Estimate costs <Calculator className="h-4 w-4" />
                   </Link>
                 </Button>
                 <Button asChild variant="ghost">
-                  <Link href={`/compare?add=${sector.slug}`}>Compare</Link>
+                  <Link href={`${appBase}/compare?add=${sector.slug}`}>Compare</Link>
                 </Button>
                 <BookmarkButton
                   sectorId={sector.id}

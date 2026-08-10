@@ -46,14 +46,14 @@ const EXPLORE: SidebarSection = {
     { href: '/dashboard/research', label: 'Research', icon: Library },
     { href: '/dashboard/pulse', label: 'Pulse', icon: Newspaper },
     { href: '/dashboard/sectors', label: 'Sectors', icon: Layers },
-    { href: '/calculator', label: 'Calculator', icon: Calculator },
+    { href: '/dashboard/calculator', label: 'Calculator', icon: Calculator },
   ],
 }
 
 const WORKSPACE: SidebarSection = {
   title: 'My workspace',
   items: [
-    { href: '/checklist', label: 'Checklists', icon: ListTodo },
+    { href: '/dashboard/checklist', label: 'Checklists', icon: ListTodo },
     { href: '/dashboard/reports', label: 'Reports', icon: FileBarChart },
     { href: '/dashboard/request-data', label: 'Request a doc', icon: FilePlus2 },
     { href: '/dashboard/requests', label: 'My requests', icon: Inbox },

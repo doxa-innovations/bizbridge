@@ -28,5 +28,5 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
  */
 export default async function DashboardSectorDetailPage({ params }: PageProps) {
   const [{ slug }] = await Promise.all([params, requireUser()])
-  return <SectorDetailFeature slug={slug} basePath="/dashboard/sectors" />
+  return <SectorDetailFeature slug={slug} basePath="/dashboard/sectors" appBase="/dashboard" />
 }
