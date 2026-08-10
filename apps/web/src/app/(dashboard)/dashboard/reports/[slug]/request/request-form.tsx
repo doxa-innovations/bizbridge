@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { ArrowRight, Loader2, Upload } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/cn'
 
@@ -13,13 +12,15 @@ interface Props {
   report: { id: string; title: string; amountEtb: number }
 }
 
-type Method = 'telebirr' | 'cbe_birr'
-
+/**
+ * Just the screenshot. User already knows the report + price from the page
+ * they're on; admin reads the payment method / reference / amount off the
+ * image at verification time.
+ */
 export function RequestForm({ report }: Props) {
   const router = useRouter()
-  const [method, setMethod] = useState<Method>('telebirr')
-  const [reference, setReference] = useState('')
   const [file, setFile] = useState<File | null>(null)
+  const [note, setNote] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
 
@@ -30,15 +31,13 @@ export function RequestForm({ report }: Props) {
       setError('Attach the payment screenshot.')
       return
     }
-    if (!reference.trim()) {
-      setError('Enter the transaction reference number.')
-      return
-    }
 
     const form = new FormData()
+    form.append('requestType', 'catalog')
     form.append('reportId', report.id)
-    form.append('paymentMethod', method)
-    form.append('paymentReference', reference.trim())
+    // Placeholder — admin reads method/ref off the screenshot at verify time.
+    form.append('paymentMethod', 'telebirr')
+    if (note.trim()) form.append('paymentReference', note.trim())
     form.append('screenshot', file)
 
     startTransition(async () => {
@@ -58,42 +57,13 @@ export function RequestForm({ report }: Props) {
 
   return (
     <Card className="p-6">
-      <form onSubmit={onSubmit} className="space-y-5">
-        <div>
-          <Label>Payment method</Label>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            {(['telebirr', 'cbe_birr'] as const).map((m) => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMethod(m)}
-                className={cn(
-                  'rounded-md border px-3 py-2 text-sm font-medium transition-colors',
-                  method === m
-                    ? 'border-brand bg-brand/10 text-ink'
-                    : 'border-border/70 bg-surface text-ink-muted hover:border-brand/40',
-                )}
-              >
-                {m === 'telebirr' ? 'Telebirr' : 'CBE Birr'}
-              </button>
-            ))}
-          </div>
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div className="rounded-md border border-border/70 bg-bg/50 p-3 text-xs text-ink-muted">
+          Amount to send: <strong className="font-mono text-ink">ETB {report.amountEtb.toLocaleString()}</strong>
         </div>
 
         <div>
-          <Label htmlFor="reference">Transaction reference</Label>
-          <Input
-            id="reference"
-            required
-            value={reference}
-            onChange={(e) => setReference(e.target.value)}
-            placeholder="e.g. TEL1234567890"
-            className="mt-1.5"
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="screenshot">Screenshot proof</Label>
+          <Label htmlFor="screenshot">Payment screenshot</Label>
           <label
             htmlFor="screenshot"
             className={cn(
@@ -117,9 +87,19 @@ export function RequestForm({ report }: Props) {
           </label>
         </div>
 
-        <div className="rounded-md border border-border/70 bg-bg/50 p-3 text-xs text-ink-muted">
-          Amount to be verified: <strong className="font-mono text-ink">ETB {report.amountEtb.toLocaleString()}</strong>
-        </div>
+        <details className="rounded-md border border-border/70 bg-surface/50 p-3">
+          <summary className="cursor-pointer text-xs text-ink-muted hover:text-ink">
+            Anything to add? (optional)
+          </summary>
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            placeholder="Telebirr ref, notes for the reviewer…"
+            maxLength={300}
+            className="mt-2 flex w-full rounded-md border border-border bg-bg px-3 py-2 text-sm text-ink placeholder:text-ink-faint focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+          />
+        </details>
 
         {error ? (
           <p className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">

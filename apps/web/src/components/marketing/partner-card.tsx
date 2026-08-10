@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import { ArrowUpRight, MapPin } from 'lucide-react'
 import type { Partner } from '@/lib/partners'
 import { Badge } from '@/components/ui/badge'
@@ -57,12 +58,38 @@ export function PartnerCard({ partner, category, size = 'md' }: PartnerCardProps
 
 export function BrandMark({ partner, size = 'md' }: { partner: Partner; size?: 'sm' | 'md' }) {
   const tint = partner.tint ?? 'brand'
-  const dim = size === 'sm' ? 'h-10 w-10 text-sm' : 'h-12 w-12 text-base'
+  const dim = size === 'sm' ? 'h-10 w-10' : 'h-12 w-12'
+  const px = size === 'sm' ? 40 : 48
+
+  // Real logo asset — render as an image inside a light-tinted tile so a
+  // dark or transparent logo doesn't disappear against the dark surface.
+  if (partner.logoUrl) {
+    return (
+      <span
+        className={cn(
+          'grid place-items-center overflow-hidden rounded-md bg-white/95 ring-1 ring-inset ring-border',
+          dim,
+        )}
+      >
+        <Image
+          src={partner.logoUrl}
+          alt={`${partner.name} logo`}
+          width={px}
+          height={px}
+          className="h-full w-full object-contain p-1"
+          unoptimized
+        />
+      </span>
+    )
+  }
+
+  // Fallback — initials on a tinted gradient.
   return (
     <span
       className={cn(
         'grid place-items-center rounded-md bg-gradient-to-br font-semibold ring-1 ring-inset ring-border',
         dim,
+        size === 'sm' ? 'text-sm' : 'text-base',
         TINT_CLASSES[tint],
       )}
       aria-hidden

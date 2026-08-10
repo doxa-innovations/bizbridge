@@ -10,6 +10,7 @@
  */
 import 'dotenv/config'
 import { Pool } from 'pg'
+import { normalizeDatabaseUrl } from '../src/lib/db-url'
 
 const COLUMNS = [
   { name: 'user_type', type: 'text' },
@@ -22,9 +23,11 @@ const COLUMNS = [
 ] as const
 
 async function main() {
-  const connectionString = process.env.DATABASE_URL
-  if (!connectionString) {
-    console.error('DATABASE_URL is required')
+  let connectionString: string
+  try {
+    connectionString = normalizeDatabaseUrl(process.env.DATABASE_URL)
+  } catch (err) {
+    console.error((err as Error).message)
     process.exit(1)
   }
   const pool = new Pool({ connectionString })

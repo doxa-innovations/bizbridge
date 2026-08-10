@@ -1,5 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { Suspense } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { LoginForm } from './login-form'
 
 export const metadata: Metadata = {
@@ -18,13 +20,33 @@ export default function LoginPage() {
         </Link>
       </p>
       <div className="mt-8">
-        <LoginForm />
+        {/* LoginForm uses useSearchParams() for ?next= — needs a Suspense
+            boundary to satisfy Next 15's static prerender contract. */}
+        <Suspense fallback={<LoginSkeleton />}>
+          <LoginForm />
+        </Suspense>
       </div>
       <p className="mt-6 text-center text-xs text-ink-faint">
         <Link href="/forgot-password" className="hover:text-ink">
           Forgot your password?
         </Link>
       </p>
+    </div>
+  )
+}
+
+function LoginSkeleton() {
+  return (
+    <div className="space-y-5">
+      <div className="space-y-1.5">
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+      <div className="space-y-1.5">
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+      <Skeleton className="h-10 w-full" />
     </div>
   )
 }

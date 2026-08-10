@@ -79,11 +79,11 @@ export async function POST(req: NextRequest) {
     if (!customTitle) {
       return NextResponse.json({ error: 'customTitle required' }, { status: 400 })
     }
-    const parsedAmount = amountEtbRaw ? Number(amountEtbRaw) : NaN
-    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      return NextResponse.json({ error: 'amountEtb must be > 0 for custom requests' }, { status: 400 })
-    }
-    amountEtb = parsedAmount
+    // Amount is optional at submission time — admin fills it from the
+    // screenshot at verify. Default to 0 and let the reviewer set the true
+    // amount in the Payload admin UI before flipping status to 'verified'.
+    const parsedAmount = amountEtbRaw ? Number(amountEtbRaw) : 0
+    amountEtb = Number.isFinite(parsedAmount) && parsedAmount >= 0 ? parsedAmount : 0
   }
 
   // Rate-limit: max 3 pending requests per user per hour to blunt spam

@@ -21,14 +21,13 @@ const nextConfig: NextConfig = {
   },
   images: {
     remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: '**.r2.dev',
-      },
-      {
-        protocol: 'https',
-        hostname: '**.r2.cloudflarestorage.com',
-      },
+      { protocol: 'https', hostname: '**.r2.dev' },
+      { protocol: 'https', hostname: '**.r2.cloudflarestorage.com' },
+      // Partner logos hosted on the Doxa CDN + Fida's own domain.
+      { protocol: 'https', hostname: 'cdn.doxaplc.com' },
+      { protocol: 'https', hostname: 'fidadelivery.com' },
+      { protocol: 'https', hostname: 'doxaplc.com' },
+      { protocol: 'https', hostname: 'classicnoodle.com' },
     ],
   },
   async headers() {

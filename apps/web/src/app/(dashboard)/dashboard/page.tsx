@@ -25,6 +25,7 @@ import {
   CapitalTierMeter,
   InterestCoverage,
 } from '@/components/dashboard/dashboard-visuals'
+import { DoxaPromoModal } from '@/components/dashboard/doxa-promo'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 export const dynamic = 'force-dynamic'
@@ -153,6 +154,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
+      {/* Marketing modal — auto-opens ~20s after landing, snoozeable 14 days. */}
+      <DoxaPromoModal />
+
       {/* ONBOARDING NUDGE — persistent thin banner when user skipped */}
       {!user.onboardedAt && user.onboardingSkippedAt ? (
         <Card className="flex flex-wrap items-center gap-4 p-4">

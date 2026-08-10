@@ -10,14 +10,9 @@ import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import * as schema from './auth-schema'
+import { normalizeDatabaseUrl } from './db-url'
 
-const connectionString = process.env.DATABASE_URL
-
-if (!connectionString) {
-  throw new Error(
-    'DATABASE_URL is required for Better Auth. Set it in .env or your Vercel environment.',
-  )
-}
+const connectionString = normalizeDatabaseUrl(process.env.DATABASE_URL)
 
 const pool = new Pool({ connectionString })
 const db = drizzle(pool, { schema })

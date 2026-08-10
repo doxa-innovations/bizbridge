@@ -307,4 +307,7 @@ export function InterestCoverage({
   )
 }
 
-export { CHART_1, CHART_2, CHART_3, BRAND }
+// (previously re-exported the CHART_* + BRAND constants; a client-boundary
+// module can only export components/functions cleanly — string constants
+// alongside components triggered a Next 15 webpack ref-generation bug that
+// made every named import come back undefined at render time.)

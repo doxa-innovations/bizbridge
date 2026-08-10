@@ -42,15 +42,21 @@ const r2Enabled = Boolean(
 // Payment screenshots for /dashboard/requests must persist across cold starts.
 // Payload's default disk storage is ephemeral on Dokploy/Vercel, which would
 // silently break the verification workflow the first time the container recycles.
-// Fail loud in production so ops notice before users notice.
-if (process.env.NODE_ENV === 'production' && !r2Enabled) {
+// Fail loud in production so ops notice before users notice — but ONLY at
+// runtime start, not during the build (build has no R2 env and doesn't need
+// to write files). Detected via NEXT_PHASE, which Next sets to
+// 'phase-production-build' during `next build`.
+const isBuild = process.env.NEXT_PHASE === 'phase-production-build'
+if (process.env.NODE_ENV === 'production' && !r2Enabled && !isBuild) {
   throw new Error(
     'R2 credentials required in production — payment screenshots cannot be stored on ephemeral disk. ' +
       'Set R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET_NAME / R2_ENDPOINT in Dokploy.',
   )
 }
 
-const databaseUrl = process.env.DATABASE_URL?.replace('sslmode=require', 'sslmode=verify-full')
+// Normalized in one place — src/lib/db-url.ts explains why.
+import { normalizeDatabaseUrl } from './lib/db-url'
+const databaseUrl = normalizeDatabaseUrl(process.env.DATABASE_URL)
 
 export default buildConfig({
   admin: {
