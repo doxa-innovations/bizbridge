@@ -6,6 +6,7 @@ import {
   Background,
   Controls,
   MiniMap,
+  PanOnScrollMode,
   ReactFlow,
   ReactFlowProvider,
   addEdge,
@@ -461,10 +462,25 @@ function CanvasEditorInner({
             snapToGrid
             snapGrid={[20, 20]}
             deleteKeyCode={null}
-            selectionOnDrag
-            multiSelectionKeyCode={['Meta', 'Control']}
-            panOnDrag={[1, 2]}
             connectionRadius={40}
+            // Pan/zoom defaults tuned for laptop trackpad users:
+            //   - trackpad two-finger scroll pans (both axes)
+            //   - trackpad pinch zooms
+            //   - left-click drag on empty area pans (Figma-style)
+            //   - Cmd/Ctrl + drag draws a selection box
+            //   - Shift + click adds a node to the current selection
+            //   - wheel scroll is pan, not zoom (Ctrl+wheel zooms via
+            //     zoomActivationKeyCode)
+            panOnScroll
+            panOnScrollMode={PanOnScrollMode.Free}
+            zoomOnScroll={false}
+            zoomOnPinch
+            zoomOnDoubleClick={false}
+            panOnDrag
+            selectionOnDrag={false}
+            selectionKeyCode={['Meta', 'Control']}
+            multiSelectionKeyCode={['Shift']}
+            zoomActivationKeyCode={['Meta', 'Control']}
           >
             <Background gap={20} size={1} />
             <MiniMap zoomable pannable className="!bg-surface !border-border" />
@@ -484,7 +500,10 @@ function CanvasEditorInner({
                   the other to connect them.
                 </p>
                 <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
-                  ⌘Z undo · ⌫ delete · space+drag pan
+                  drag empty area to pan · two-finger scroll · ⌘+scroll zoom · ⌫ delete
+                </p>
+                <p className="mt-2 text-[10px] text-ink-faint">
+                  Once you have a node, select it and drag the corner handle to resize.
                 </p>
               </div>
             </div>

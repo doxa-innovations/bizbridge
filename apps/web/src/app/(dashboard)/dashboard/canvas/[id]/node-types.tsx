@@ -2,7 +2,13 @@
 
 import { memo, useState } from 'react'
 import Link from 'next/link'
-import { Handle, Position, useReactFlow, type NodeProps } from '@xyflow/react'
+import {
+  Handle,
+  NodeResizer,
+  Position,
+  useReactFlow,
+  type NodeProps,
+} from '@xyflow/react'
 import {
   BookOpen,
   Calendar,
@@ -19,10 +25,16 @@ import { cn } from '@/lib/cn'
 import type { CanvasNodeType } from '@/lib/canvas-template'
 import { SectorDeepPicker } from '@/components/sectors/sector-deep-picker'
 
-/** Shared visual chrome for every node type — outline, both handles,
- *  header row (icon + label + hover-only delete). Selected nodes get a
- *  visible brand-coloured ring; the ring is opt-in via React Flow's
- *  built-in `.selected` class which the surrounding wrapper carries. */
+/**
+ * Shared visual chrome for every node type — outline, both handles,
+ * header row (icon + label + hover-only delete + optional actions), plus
+ * a NodeResizer that appears on selection so users can drag any node to
+ * a size that fits its content. All node bodies are given h-full so
+ * their inputs/textareas grow with the container.
+ *
+ * `minWidth` / `minHeight` differ per node type: Task is smaller (one
+ * short input), Idea/Note/Question are bigger (multi-line text likely).
+ */
 function NodeChrome({
   icon,
   label,
@@ -30,66 +42,79 @@ function NodeChrome({
   className,
   id,
   actions,
+  selected,
+  minWidth = 220,
+  minHeight = 88,
 }: {
   icon: React.ReactNode
   label: string
   children: React.ReactNode
   className?: string
   id: string
-  /** Optional extra icon buttons rendered to the LEFT of the delete
-   *  button in the node header. Sector node uses this for the swap
-   *  affordance. */
   actions?: React.ReactNode
+  selected?: boolean
+  minWidth?: number
+  minHeight?: number
 }) {
   const { setNodes, setEdges } = useReactFlow()
   return (
-    <div
-      className={cn(
-        'group relative min-w-[220px] max-w-[280px] rounded-lg border border-border bg-surface shadow-sm transition-all',
-        'hover:border-brand/40',
-        className,
-      )}
-    >
-      <Handle
-        type="target"
-        position={Position.Left}
-        className="!h-2.5 !w-2.5 !border-2 !border-surface !bg-brand"
+    <>
+      <NodeResizer
+        isVisible={Boolean(selected)}
+        minWidth={minWidth}
+        minHeight={minHeight}
+        lineClassName="!border-brand/60"
+        handleClassName="!h-2 !w-2 !rounded-sm !border !border-surface !bg-brand"
       />
-      <Handle
-        type="source"
-        position={Position.Right}
-        className="!h-2.5 !w-2.5 !border-2 !border-surface !bg-brand"
-      />
-      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-1.5">
-        <div className="flex items-center gap-1.5 text-ink-muted [&_svg]:h-3 [&_svg]:w-3">
-          {icon}
-          <span className="font-mono text-[10px] uppercase tracking-[0.14em]">{label}</span>
+      <div
+        className={cn(
+          // Fills the resizable wrapper. Flex column so the header stays
+          // fixed-height and the body absorbs the remaining space.
+          'group relative flex h-full w-full flex-col rounded-lg border border-border bg-surface shadow-sm transition-all',
+          'hover:border-brand/40',
+          className,
+        )}
+      >
+        <Handle
+          type="target"
+          position={Position.Left}
+          className="!h-2.5 !w-2.5 !border-2 !border-surface !bg-brand"
+        />
+        <Handle
+          type="source"
+          position={Position.Right}
+          className="!h-2.5 !w-2.5 !border-2 !border-surface !bg-brand"
+        />
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-border px-3 py-1.5">
+          <div className="flex items-center gap-1.5 text-ink-muted [&_svg]:h-3 [&_svg]:w-3">
+            {icon}
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em]">{label}</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            {actions}
+            <button
+              type="button"
+              onClick={() => {
+                setNodes((nodes) => nodes.filter((n) => n.id !== id))
+                setEdges((edges) => edges.filter((e) => e.source !== id && e.target !== id))
+              }}
+              className="opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
+              aria-label="Delete node"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-1.5">
-          {actions}
-          <button
-            type="button"
-            onClick={() => {
-              setNodes((nodes) => nodes.filter((n) => n.id !== id))
-              setEdges((edges) => edges.filter((e) => e.source !== id && e.target !== id))
-            }}
-            className="opacity-0 transition-opacity hover:text-danger group-hover:opacity-100"
-            aria-label="Delete node"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </div>
+        {/* min-h-0 lets the flex child shrink below its content size so a
+            resize down actually clips the body instead of overflowing. */}
+        <div className="flex min-h-0 flex-1 flex-col px-3 py-2">{children}</div>
       </div>
-      <div className="px-3 py-2">{children}</div>
-    </div>
+    </>
   )
 }
 
-/** Sector node — pinned to a MOR sector, links out to the sector detail.
- *  Includes a "swap sector" affordance so the user can change the pinned
- *  sector without deleting the node (previous version required delete +
- *  re-add, which lost all connected edges). */
-export const SectorNode = memo(function SectorNode({ id, data }: NodeProps) {
+/** Sector node — pinned to a MOR sector, links out to the sector detail. */
+export const SectorNode = memo(function SectorNode({ id, data, selected }: NodeProps) {
   const { setNodes } = useReactFlow()
   const [swapOpen, setSwapOpen] = useState(false)
 
@@ -100,9 +125,12 @@ export const SectorNode = memo(function SectorNode({ id, data }: NodeProps) {
   return (
     <NodeChrome
       id={id}
+      selected={selected}
       icon={<Layers />}
       label="Sector"
       className="border-brand/50"
+      minWidth={220}
+      minHeight={100}
       actions={
         <button
           type="button"
@@ -122,12 +150,12 @@ export const SectorNode = memo(function SectorNode({ id, data }: NodeProps) {
       {slug ? (
         <Link
           href={`/dashboard/sectors/${slug}`}
-          className="text-sm font-semibold leading-tight text-ink hover:text-brand"
+          className="text-sm font-semibold leading-snug text-ink hover:text-brand"
         >
           {title}
         </Link>
       ) : (
-        <p className="text-sm font-semibold leading-tight text-ink">{title}</p>
+        <p className="text-sm font-semibold leading-snug text-ink">{title}</p>
       )}
       {swapOpen ? (
         <SectorDeepPicker
@@ -156,17 +184,19 @@ export const SectorNode = memo(function SectorNode({ id, data }: NodeProps) {
   )
 })
 
-/** Sticky note — free-form annotation for the canvas. Distinct warm
- *  yellow tint so it visually stands out from actionable blocks. */
-export const NoteNode = memo(function NoteNode({ id, data }: NodeProps) {
+/** Sticky note — free-form annotation. Yellow-tinted, resizable large. */
+export const NoteNode = memo(function NoteNode({ id, data, selected }: NodeProps) {
   const { setNodes } = useReactFlow()
   const text = (data.text as string) ?? ''
   return (
     <NodeChrome
       id={id}
+      selected={selected}
       icon={<StickyNote />}
       label="Note"
       className="border-warn/40 bg-[color-mix(in_oklch,var(--warn)_10%,var(--surface))]"
+      minWidth={220}
+      minHeight={120}
     >
       <textarea
         value={text}
@@ -177,19 +207,25 @@ export const NoteNode = memo(function NoteNode({ id, data }: NodeProps) {
           )
         }}
         placeholder="Note or annotation…"
-        rows={3}
-        className="w-full resize-none rounded border border-transparent bg-transparent p-1 text-sm leading-snug text-ink placeholder:text-ink-faint focus:border-brand/40 focus:outline-none"
+        className="h-full w-full flex-1 resize-none rounded border border-transparent bg-transparent p-1 text-sm leading-snug text-ink placeholder:text-ink-faint focus:border-brand/40 focus:outline-none"
       />
     </NodeChrome>
   )
 })
 
-/** Free-form idea — one editable textarea. */
-export const IdeaNode = memo(function IdeaNode({ id, data }: NodeProps) {
+/** Free-form idea — one editable textarea, resizable large. */
+export const IdeaNode = memo(function IdeaNode({ id, data, selected }: NodeProps) {
   const { setNodes } = useReactFlow()
   const text = (data.text as string) ?? ''
   return (
-    <NodeChrome id={id} icon={<Lightbulb />} label="Idea">
+    <NodeChrome
+      id={id}
+      selected={selected}
+      icon={<Lightbulb />}
+      label="Idea"
+      minWidth={220}
+      minHeight={120}
+    >
       <textarea
         value={text}
         onChange={(e) => {
@@ -199,21 +235,28 @@ export const IdeaNode = memo(function IdeaNode({ id, data }: NodeProps) {
           )
         }}
         placeholder="What if…"
-        rows={3}
-        className="w-full resize-none rounded border border-transparent bg-transparent p-1 text-sm text-ink placeholder:text-ink-faint focus:border-brand/40 focus:outline-none"
+        className="h-full w-full flex-1 resize-none rounded border border-transparent bg-transparent p-1 text-sm leading-snug text-ink placeholder:text-ink-faint focus:border-brand/40 focus:outline-none"
       />
     </NodeChrome>
   )
 })
 
-/** Task — text + checkbox. */
-export const TaskNode = memo(function TaskNode({ id, data }: NodeProps) {
+/** Task — text + checkbox. Compact default, expands vertically for
+ *  longer descriptions. */
+export const TaskNode = memo(function TaskNode({ id, data, selected }: NodeProps) {
   const { setNodes } = useReactFlow()
   const text = (data.text as string) ?? ''
   const done = Boolean(data.done)
   return (
-    <NodeChrome id={id} icon={<CheckSquare />} label="Task">
-      <div className="flex items-start gap-2">
+    <NodeChrome
+      id={id}
+      selected={selected}
+      icon={<CheckSquare />}
+      label="Task"
+      minWidth={220}
+      minHeight={80}
+    >
+      <div className="flex h-full items-start gap-2">
         <input
           type="checkbox"
           checked={done}
@@ -223,9 +266,9 @@ export const TaskNode = memo(function TaskNode({ id, data }: NodeProps) {
               nodes.map((n) => (n.id === id ? { ...n, data: { ...n.data, done: v } } : n)),
             )
           }}
-          className="mt-1 accent-brand"
+          className="mt-1.5 accent-brand"
         />
-        <input
+        <textarea
           value={text}
           onChange={(e) => {
             const v = e.target.value
@@ -235,7 +278,7 @@ export const TaskNode = memo(function TaskNode({ id, data }: NodeProps) {
           }}
           placeholder="What needs doing?"
           className={cn(
-            'w-full rounded border border-transparent bg-transparent p-1 text-sm text-ink placeholder:text-ink-faint focus:border-brand/40 focus:outline-none',
+            'h-full w-full flex-1 resize-none rounded border border-transparent bg-transparent p-1 text-sm leading-snug text-ink placeholder:text-ink-faint focus:border-brand/40 focus:outline-none',
             done && 'text-ink-faint line-through',
           )}
         />
@@ -245,11 +288,19 @@ export const TaskNode = memo(function TaskNode({ id, data }: NodeProps) {
 })
 
 /** Question — open question needing research. */
-export const QuestionNode = memo(function QuestionNode({ id, data }: NodeProps) {
+export const QuestionNode = memo(function QuestionNode({ id, data, selected }: NodeProps) {
   const { setNodes } = useReactFlow()
   const text = (data.text as string) ?? ''
   return (
-    <NodeChrome id={id} icon={<FileQuestion />} label="Question" className="border-accent/40">
+    <NodeChrome
+      id={id}
+      selected={selected}
+      icon={<FileQuestion />}
+      label="Question"
+      className="border-accent/40"
+      minWidth={220}
+      minHeight={120}
+    >
       <textarea
         value={text}
         onChange={(e) => {
@@ -259,15 +310,14 @@ export const QuestionNode = memo(function QuestionNode({ id, data }: NodeProps) 
           )
         }}
         placeholder="What do we still need to know?"
-        rows={3}
-        className="w-full resize-none rounded border border-transparent bg-transparent p-1 text-sm text-ink placeholder:text-ink-faint focus:border-brand/40 focus:outline-none"
+        className="h-full w-full flex-1 resize-none rounded border border-transparent bg-transparent p-1 text-sm leading-snug text-ink placeholder:text-ink-faint focus:border-brand/40 focus:outline-none"
       />
     </NodeChrome>
   )
 })
 
 /** Contact — person / expert / partner. */
-export const ContactNode = memo(function ContactNode({ id, data }: NodeProps) {
+export const ContactNode = memo(function ContactNode({ id, data, selected }: NodeProps) {
   const { setNodes } = useReactFlow()
   const name = (data.name as string) ?? ''
   const role = (data.role as string) ?? ''
@@ -279,7 +329,14 @@ export const ContactNode = memo(function ContactNode({ id, data }: NodeProps) {
     )
 
   return (
-    <NodeChrome id={id} icon={<ContactIcon />} label="Contact">
+    <NodeChrome
+      id={id}
+      selected={selected}
+      icon={<ContactIcon />}
+      label="Contact"
+      minWidth={240}
+      minHeight={120}
+    >
       <input
         value={name}
         onChange={(e) => update({ name: e.target.value })}
@@ -303,7 +360,7 @@ export const ContactNode = memo(function ContactNode({ id, data }: NodeProps) {
 })
 
 /** Doc — something to procure (fee schedule, form, template). */
-export const DocNode = memo(function DocNode({ id, data }: NodeProps) {
+export const DocNode = memo(function DocNode({ id, data, selected }: NodeProps) {
   const { setNodes } = useReactFlow()
   const title = (data.title as string) ?? ''
   const source = (data.source as string) ?? ''
@@ -314,25 +371,32 @@ export const DocNode = memo(function DocNode({ id, data }: NodeProps) {
     )
 
   return (
-    <NodeChrome id={id} icon={<BookOpen />} label="Doc">
+    <NodeChrome
+      id={id}
+      selected={selected}
+      icon={<BookOpen />}
+      label="Doc"
+      minWidth={240}
+      minHeight={100}
+    >
       <input
         value={title}
         onChange={(e) => update({ title: e.target.value })}
         placeholder="Doc name (e.g. MOR fee schedule 2026)"
         className="w-full rounded border border-transparent bg-transparent p-1 text-sm font-semibold text-ink placeholder:text-ink-faint focus:border-brand/40 focus:outline-none"
       />
-      <input
+      <textarea
         value={source}
         onChange={(e) => update({ source: e.target.value })}
         placeholder="Where to get it"
-        className="w-full rounded border border-transparent bg-transparent p-1 text-xs text-ink-muted placeholder:text-ink-faint focus:border-brand/40 focus:outline-none"
+        className="h-full w-full flex-1 resize-none rounded border border-transparent bg-transparent p-1 text-xs leading-snug text-ink-muted placeholder:text-ink-faint focus:border-brand/40 focus:outline-none"
       />
     </NodeChrome>
   )
 })
 
 /** Milestone — dated goal. */
-export const MilestoneNode = memo(function MilestoneNode({ id, data }: NodeProps) {
+export const MilestoneNode = memo(function MilestoneNode({ id, data, selected }: NodeProps) {
   const { setNodes } = useReactFlow()
   const text = (data.text as string) ?? ''
   const target = (data.target as string | null) ?? ''
@@ -345,9 +409,12 @@ export const MilestoneNode = memo(function MilestoneNode({ id, data }: NodeProps
   return (
     <NodeChrome
       id={id}
+      selected={selected}
       icon={<Calendar />}
       label="Milestone"
       className="border-brand/70 bg-brand/5"
+      minWidth={220}
+      minHeight={100}
     >
       <input
         value={text}
