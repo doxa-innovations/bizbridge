@@ -9,6 +9,7 @@ export const Admins: CollectionConfig = {
     description: 'Payload CMS admin users (separate from app users in Better Auth).',
   },
   auth: true,
+  lockDocuments: false,
   access: {
     read: isAdmin,
     create: isAdmin,

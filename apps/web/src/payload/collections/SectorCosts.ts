@@ -8,6 +8,7 @@ export const SectorCosts: CollectionConfig = {
     group: 'Sector Data',
     defaultColumns: ['cost_item', 'sector', 'amount_birr_min', 'amount_birr_max', 'is_official_fee'],
   },
+  lockDocuments: false,
   access: {
     read: anyone,
     create: isAdmin,

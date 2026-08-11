@@ -8,6 +8,7 @@ export const BlogPosts: CollectionConfig = {
     group: 'Content',
     defaultColumns: ['title', 'slug', 'published_at', '_status'],
   },
+  lockDocuments: false,
   access: {
     read: publishedOrAdmin,
     create: isAdmin,

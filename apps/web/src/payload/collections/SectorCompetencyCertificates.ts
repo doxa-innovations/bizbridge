@@ -8,6 +8,7 @@ export const SectorCompetencyCertificates: CollectionConfig = {
     group: 'Sector Data',
     defaultColumns: ['certificate_name', 'issuing_body', 'sector', 'is_mandatory'],
   },
+  lockDocuments: false,
   access: {
     read: anyone,
     create: isAdmin,

@@ -8,6 +8,7 @@ export const SectorApprovals: CollectionConfig = {
     group: 'Sector Data',
     defaultColumns: ['approval_name', 'approving_ministry', 'sector', 'sequence_order'],
   },
+  lockDocuments: false,
   access: {
     read: anyone,
     create: isAdmin,

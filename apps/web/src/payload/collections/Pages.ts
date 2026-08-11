@@ -8,6 +8,7 @@ export const Pages: CollectionConfig = {
     group: 'Content',
     defaultColumns: ['title', 'slug', '_status', 'updatedAt'],
   },
+  lockDocuments: false,
   access: {
     read: publishedOrAdmin,
     create: isAdmin,

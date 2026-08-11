@@ -17,6 +17,7 @@ export const NewsSources: CollectionConfig = {
     defaultColumns: ['name', 'type', 'category', 'priority', 'is_active'],
     useAsTitle: 'name',
   },
+  lockDocuments: false,
   access: {
     read: activeOrAdmin,
     create: isAdmin,

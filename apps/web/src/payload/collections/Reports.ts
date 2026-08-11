@@ -11,6 +11,7 @@ export const Reports: CollectionConfig = {
     group: 'Content',
     defaultColumns: ['title', 'slug', 'sector', 'price_usd', '_status'],
   },
+  lockDocuments: false,
   access: {
     read: publishedOrAdmin,
     create: isAdmin,

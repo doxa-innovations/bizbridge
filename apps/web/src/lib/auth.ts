@@ -18,7 +18,17 @@ const connectionString = normalizeDatabaseUrl(process.env.DATABASE_URL)
 const pool = new Pool({ connectionString })
 const db = drizzle(pool, { schema })
 
+/** Base URL Better Auth uses when it mints URLs in outgoing emails
+ *  (password reset link, verification link). Without this, the server
+ *  defaults to localhost — production reset emails then contain
+ *  `https://localhost:3000/…` links that go nowhere. */
+const authBaseURL =
+  process.env.BETTER_AUTH_URL ??
+  process.env.NEXT_PUBLIC_APP_URL ??
+  'http://localhost:3000'
+
 export const auth = betterAuth({
+  baseURL: authBaseURL,
   database: drizzleAdapter(db, {
     provider: 'pg',
     schema,

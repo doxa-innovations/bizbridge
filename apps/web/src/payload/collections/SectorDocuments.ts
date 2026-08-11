@@ -15,6 +15,7 @@ export const SectorDocuments: CollectionConfig = {
     group: 'Sector Data',
     defaultColumns: ['title', 'sector', 'file_type', 'download_count'],
   },
+  lockDocuments: false,
   access: {
     read: anyone,
     create: isAdmin,

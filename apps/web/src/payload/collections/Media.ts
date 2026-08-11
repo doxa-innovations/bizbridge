@@ -14,6 +14,7 @@ export const Media: CollectionConfig = {
   admin: {
     group: 'System',
   },
+  lockDocuments: false,
   access: {
     read: anyone,
     create: isAdmin,

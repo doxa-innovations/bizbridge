@@ -65,8 +65,9 @@ export default async function ReportsPage() {
           Research reports catalog.
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-ink-muted">
-          Hand-written market briefs on Ethiopian sectors. Purchase with Telebirr — upload the
-          transaction screenshot (or DM it), we verify manually within a business day.
+          Hand-written market briefs on Ethiopian sectors. Sector data everywhere else on the
+          site is free forever — briefs are the one place we cover our research costs with a
+          small handling fee (Telebirr; upload the screenshot or DM it, verified within a day).
         </p>
       </header>
 
@@ -90,13 +91,13 @@ export default async function ReportsPage() {
       ) : (
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
           {reports.map((r) => {
-            const isPurchased = verifiedReports.has(String(r.id))
+            const isUnlocked = verifiedReports.has(String(r.id))
             return (
               <Card key={r.id} className="flex flex-col p-5">
                 <div className="flex items-start justify-between gap-2">
                   <FileText className="h-4 w-4 text-brand" />
-                  {isPurchased ? (
-                    <Badge variant="brand">Purchased</Badge>
+                  {isUnlocked ? (
+                    <Badge variant="brand">Unlocked</Badge>
                   ) : (
                     <Badge variant="mono">
                       ETB {r.price_birr?.toLocaleString() ?? '—'}
@@ -115,7 +116,7 @@ export default async function ReportsPage() {
                       Preview <ArrowUpRight className="h-3.5 w-3.5" />
                     </Link>
                   </Button>
-                  {isPurchased ? (
+                  {isUnlocked ? (
                     <Button asChild size="sm">
                       <Link href="/dashboard/requests">
                         Download <ArrowRight className="h-3.5 w-3.5" />

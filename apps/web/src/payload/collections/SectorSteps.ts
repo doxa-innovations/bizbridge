@@ -8,6 +8,7 @@ export const SectorSteps: CollectionConfig = {
     group: 'Sector Data',
     defaultColumns: ['step_number', 'title', 'sector'],
   },
+  lockDocuments: false,
   access: {
     read: anyone,
     create: isAdmin,

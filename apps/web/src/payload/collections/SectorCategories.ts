@@ -8,6 +8,7 @@ export const SectorCategories: CollectionConfig = {
     group: 'Content',
     defaultColumns: ['name_en', 'name_am', 'slug', 'sort_order'],
   },
+  lockDocuments: false,
   access: {
     read: anyone,
     create: isAdmin,

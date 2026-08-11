@@ -101,9 +101,14 @@ export async function SectorsBrowseFeature({
       <section className="relative overflow-hidden border-b border-border">
         <GridBackdrop />
         <div className="container-page py-16">
-          <Badge variant="brand" className="mb-4 inline-flex">
-            MOR Directive 17/2011
-          </Badge>
+          <div className="mb-4 flex flex-wrap gap-2">
+            <Badge variant="brand" className="inline-flex">
+              MOR Directive 17/2011
+            </Badge>
+            <Badge variant="outline" className="inline-flex text-ink-muted">
+              Always free · no signup required
+            </Badge>
+          </div>
           <h1 className="text-balance text-4xl font-semibold tracking-crisp sm:text-5xl">
             {data.total} business sectors,{' '}
             <span className="text-ink-muted">one searchable directory.</span>

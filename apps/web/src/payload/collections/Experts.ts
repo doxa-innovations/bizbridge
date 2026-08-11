@@ -8,6 +8,7 @@ export const Experts: CollectionConfig = {
     group: 'Content',
     defaultColumns: ['full_name', 'title', 'location', 'is_verified', 'is_active'],
   },
+  lockDocuments: false,
   access: {
     read: activeOrAdmin,
     create: isAdmin,

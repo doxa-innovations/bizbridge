@@ -8,6 +8,7 @@ export const MarketResearch: CollectionConfig = {
     group: 'Content',
     defaultColumns: ['title', 'city', 'category', '_status'],
   },
+  lockDocuments: false,
   access: {
     read: publishedOrAdmin,
     create: isAdmin,

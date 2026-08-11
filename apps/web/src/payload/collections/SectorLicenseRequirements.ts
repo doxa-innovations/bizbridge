@@ -8,6 +8,7 @@ export const SectorLicenseRequirements: CollectionConfig = {
     group: 'Sector Data',
     defaultColumns: ['license_type', 'issuing_authority', 'sector', 'is_required'],
   },
+  lockDocuments: false,
   access: {
     read: anyone,
     create: isAdmin,

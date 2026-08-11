@@ -9,6 +9,7 @@ export const BusinessSectors: CollectionConfig = {
     defaultColumns: ['name_en', 'mor_code', 'slug', 'category', 'is_featured', 'is_active'],
     description: 'Primary content table. Populated from MOR Directive 17/2011 documents.',
   },
+  lockDocuments: false,
   access: {
     read: activeOrAdmin,
     create: isAdmin,
