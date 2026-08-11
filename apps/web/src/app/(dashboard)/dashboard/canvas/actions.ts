@@ -44,10 +44,18 @@ export async function createCanvas(formData: FormData) {
 }
 
 /** Save nodes + edges + title back onto the canvas. Owner-only.
+ *
+ *  Uses `payload.update` with a `where` filter on both `id` AND
+ *  `user_id` so the ownership check happens inline in the UPDATE
+ *  statement instead of requiring a separate findByID first. That
+ *  halves the round-trip count on every autosave and — because
+ *  document-locking is disabled on this collection — the wide
+ *  payload_locked_documents scan no longer runs at all. Neon likes
+ *  this a lot.
+ *
  *  Returns a discriminated union instead of throwing so a transient
- *  server-side render failure never surfaces as an opaque "Server
- *  Components render" red toast in the client — the caller decides how
- *  to retry / display the error. */
+ *  server-side failure never surfaces as an opaque "Server Components
+ *  render" red toast in the client. */
 export async function saveCanvas(input: {
   id: number
   title: string
@@ -57,18 +65,15 @@ export async function saveCanvas(input: {
   try {
     const user = await requireUser()
     const payload = await getPayloadClient()
-    const existing = await payload.findByID({
-      collection: 'planning-canvases',
-      id: input.id,
-      overrideAccess: true,
-    })
-    if (existing.user_id !== user.id) {
-      return { ok: false, error: 'Not authorised' }
-    }
 
-    await payload.update({
+    const res = await payload.update({
       collection: 'planning-canvases',
-      id: input.id,
+      where: {
+        and: [
+          { id: { equals: input.id } },
+          { user_id: { equals: user.id } },
+        ],
+      },
       data: {
         title: input.title.slice(0, 200) || 'Untitled plan',
         nodes: input.nodes,
@@ -77,15 +82,19 @@ export async function saveCanvas(input: {
       overrideAccess: true,
     })
 
-    // Deliberately NOT calling revalidatePath here. Autosave fires on
-    // every user edit (1.5s debounce). Revalidating either the editor
-    // route or the list route in the background triggers a fresh
-    // Server Component render — if THAT render throws for any reason
-    // (Payload hiccup, session refresh mid-request, etc.) Next.js
-    // reports "Server Components render" back through the action
-    // response and the client shows an opaque red toast even though
-    // the save itself succeeded. The list card timestamp is stale for
-    // a few seconds until the user navigates back, which is fine.
+    // `update` with `where` returns an object with `docs` — 0 rows
+    // means the id didn't exist OR wasn't owned by this user (both
+    // resolve to the same "not authorised" answer, which is what we
+    // want — no ownership-leak by returning a distinct 404).
+    if (res.docs.length === 0) {
+      return { ok: false, error: 'Not authorised or canvas missing' }
+    }
+
+    // Deliberately NOT calling revalidatePath here — autosave fires
+    // frequently and background revalidation of the list/editor page
+    // was crashing on any transient render hiccup and surfacing as
+    // "Server Components render" red toasts. The list card timestamp
+    // catches up when the user navigates back.
     return { ok: true }
   } catch (err) {
     // eslint-disable-next-line no-console

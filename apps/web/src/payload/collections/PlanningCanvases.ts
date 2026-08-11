@@ -26,6 +26,12 @@ export const PlanningCanvases: CollectionConfig = {
     defaultColumns: ['title', 'user_id', 'updatedAt'],
     useAsTitle: 'title',
   },
+  // Payload's document-locking runs a 22-OR-clause scan of
+  // payload_locked_documents on every findByID / update. That's fine on
+  // rare admin edits but crushes Neon when the canvas autosaves every
+  // few seconds. We only ever have one editor per canvas (owner-only),
+  // so the lock indicator has no purpose here.
+  lockDocuments: false,
   access: {
     read: isAdmin,
     create: isAdmin,

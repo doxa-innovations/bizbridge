@@ -61,7 +61,12 @@ interface Snapshot {
 
 const HISTORY_LIMIT = 50
 const HISTORY_DEBOUNCE_MS = 400
-const AUTOSAVE_DEBOUNCE_MS = 1500
+// Autosave was 1.5s — too frequent for Neon serverless, which pays a
+// wide-OR scan on payload_locked_documents on every update (partially
+// mitigated by disabling that lock on the collection). 30s balances
+// data-loss risk against DB load; combined with save-on-tab-close
+// (beforeunload) + Cmd/Ctrl+S the exposure is small.
+const AUTOSAVE_DEBOUNCE_MS = 30_000
 
 /**
  * Compute a stable fingerprint of the user-facing canvas state. Ignores
@@ -314,8 +319,16 @@ function CanvasEditorInner({
       return tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable
     }
     function onKey(e: KeyboardEvent) {
-      if (isEditableTarget(e.target)) return
       const mod = e.metaKey || e.ctrlKey
+      // Cmd/Ctrl+S — manual save. Works even when focus is in a text
+      // field (users expect Ctrl+S everywhere), and preventDefault
+      // stops the browser's Save-Page dialog.
+      if (mod && e.key === 's') {
+        e.preventDefault()
+        void persist()
+        return
+      }
+      if (isEditableTarget(e.target)) return
       if (mod && e.key === 'z' && !e.shiftKey) {
         e.preventDefault()
         undo()
@@ -329,7 +342,26 @@ function CanvasEditorInner({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [undo, redo, deleteSelection])
+  }, [undo, redo, deleteSelection, persist])
+
+  // Save on tab close / navigation-away so a 30s debounce doesn't strand
+  // up-to-30-seconds of unsaved edits. Uses `keepalive: true` implicitly
+  // via a fire-and-forget server-action call (React's Actions runtime
+  // uses fetch under the hood and keepalive is honoured). If the tab
+  // closes mid-flight the request still lands.
+  useEffect(() => {
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      if (!dirtyRef.current) return
+      // Fire the save without awaiting — beforeunload can't hold the tab.
+      void persist()
+      // Ask the browser to confirm — modern browsers ignore the string
+      // but require preventDefault + returnValue set to show the prompt.
+      e.preventDefault()
+      e.returnValue = ''
+    }
+    window.addEventListener('beforeunload', onBeforeUnload)
+    return () => window.removeEventListener('beforeunload', onBeforeUnload)
+  }, [persist])
 
   const exportJson = useCallback(() => {
     const payload = { title, exportedAt: new Date().toISOString(), nodes, edges }
