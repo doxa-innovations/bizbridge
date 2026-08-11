@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from 'next'
+import { Suspense } from 'react'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import { Noto_Sans_Ethiopic } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { CurrencyProvider } from '@/components/providers/currency-provider'
+import { PageTracker } from '@/components/page-tracker'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -131,6 +133,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CurrencyProvider>
             {children}
             <Toaster position="bottom-right" theme="dark" richColors closeButton />
+            {/* Product analytics beacon — fires on every route change,
+                writes to page_events in Neon via /api/track. Wrapped
+                in Suspense because it uses useSearchParams, which
+                needs a boundary under Next 15's static prerender. */}
+            <Suspense fallback={null}>
+              <PageTracker />
+            </Suspense>
           </CurrencyProvider>
         </ThemeProvider>
       </body>

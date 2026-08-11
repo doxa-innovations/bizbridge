@@ -104,6 +104,28 @@ export const auth = betterAuth({
             // eslint-disable-next-line no-console
             console.error('[auth] welcome-email failed', err)
           }
+
+          // Fire a signup analytics event so the super-admin analytics
+          // dashboard shows a real "signup" count separate from client-
+          // side page views. Wrapped so an analytics failure never
+          // blocks signup.
+          try {
+            const { getPayloadClient } = await import('./payload')
+            const payload = await getPayloadClient()
+            await payload.create({
+              collection: 'page-events',
+              data: {
+                event_type: 'signup',
+                path: '/signup',
+                user_id: user.id,
+                meta: { email: user.email, name: user.name ?? null },
+              },
+              overrideAccess: true,
+            })
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.warn('[auth] signup-event failed', (err as Error).message)
+          }
         },
       },
     },

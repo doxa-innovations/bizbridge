@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { Pool } from 'pg'
 import { getCurrentUser } from '@/lib/auth-server'
+import { isSuperAdmin } from '@/lib/is-admin'
 import { normalizeDatabaseUrl } from '@/lib/db-url'
 
 export const dynamic = 'force-dynamic'
@@ -8,23 +9,12 @@ export const runtime = 'nodejs'
 
 /**
  * Admin-only CSV export of every signup — for marketing follow-up and
- * onboarding outreach. Gated by an ADMIN_EMAILS env var (comma-separated
- * list of Better Auth user emails permitted to access). Set this in
- * Dokploy so only your address unlocks the export.
+ * onboarding outreach. Gated by isSuperAdmin (ADMIN_EMAILS env).
  *
  * Reads directly from `public.user` (Better Auth's table) rather than
  * through Payload because Better Auth's schema lives in `public` while
  * Payload lives in `payload` — no cross-schema Payload query.
  */
-function isAdminEmail(email: string | null | undefined): boolean {
-  if (!email) return false
-  const allow = (process.env.ADMIN_EMAILS ?? '')
-    .split(',')
-    .map((s) => s.trim().toLowerCase())
-    .filter(Boolean)
-  return allow.includes(email.toLowerCase())
-}
-
 function csvEscape(v: unknown): string {
   if (v === null || v === undefined) return ''
   const s = String(v)
@@ -57,7 +47,7 @@ interface UserRow {
 export async function GET(req: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-  if (!isAdminEmail(user.email)) {
+  if (!isSuperAdmin(user)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 

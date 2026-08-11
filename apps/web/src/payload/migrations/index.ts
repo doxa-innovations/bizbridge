@@ -6,6 +6,7 @@ import * as migration_20260809_000000_user_data_collections from './20260809_000
 import * as migration_20260809_010000_report_requests_custom from './20260809_010000_report_requests_custom';
 import * as migration_20260810_000000_planning_canvases from './20260810_000000_planning_canvases';
 import * as migration_20260810_010000_report_requests_screenshot_optional from './20260810_010000_report_requests_screenshot_optional';
+import * as migration_20260811_000000_page_events from './20260811_000000_page_events';
 
 export const migrations = [
   {
@@ -47,5 +48,10 @@ export const migrations = [
     up: migration_20260810_010000_report_requests_screenshot_optional.up,
     down: migration_20260810_010000_report_requests_screenshot_optional.down,
     name: '20260810_010000_report_requests_screenshot_optional'
+  },
+  {
+    up: migration_20260811_000000_page_events.up,
+    down: migration_20260811_000000_page_events.down,
+    name: '20260811_000000_page_events'
   },
 ];

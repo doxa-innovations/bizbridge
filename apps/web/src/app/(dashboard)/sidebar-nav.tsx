@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import type { LucideIcon } from 'lucide-react'
 import {
+  BarChart3,
   Calculator,
   FileBarChart,
   FilePlus2,
@@ -62,11 +63,19 @@ const WORKSPACE: SidebarSection = {
   ],
 }
 
+const ADMIN: SidebarSection = {
+  title: 'Super-admin',
+  items: [{ href: '/dashboard/admin/analytics', label: 'Analytics', icon: BarChart3 }],
+}
+
 /**
  * Dashboard sidebar. Client component so we can highlight the active route
  * via usePathname and open the command palette from the search input.
+ *
+ * `isAdmin` is server-computed and passed in — client component can't
+ * read ADMIN_EMAILS env directly.
  */
-export function SidebarNav() {
+export function SidebarNav({ isAdmin = false }: { isAdmin?: boolean }) {
   const pathname = usePathname()
 
   return (
@@ -91,6 +100,7 @@ export function SidebarNav() {
 
       <Section section={EXPLORE} pathname={pathname} />
       <Section section={WORKSPACE} pathname={pathname} />
+      {isAdmin ? <Section section={ADMIN} pathname={pathname} /> : null}
     </nav>
   )
 }

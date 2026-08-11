@@ -88,6 +88,7 @@ export interface Config {
     'report-requests': ReportRequest;
     'news-sources': NewsSource;
     'planning-canvases': PlanningCanvase;
+    'page-events': PageEvent;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
     'payload-preferences': PayloadPreference;
@@ -116,6 +117,7 @@ export interface Config {
     'report-requests': ReportRequestsSelect<false> | ReportRequestsSelect<true>;
     'news-sources': NewsSourcesSelect<false> | NewsSourcesSelect<true>;
     'planning-canvases': PlanningCanvasesSelect<false> | PlanningCanvasesSelect<true>;
+    'page-events': PageEventsSelect<false> | PageEventsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
     'payload-preferences': PayloadPreferencesSelect<false> | PayloadPreferencesSelect<true>;
@@ -833,6 +835,49 @@ export interface PlanningCanvase {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "page-events".
+ */
+export interface PageEvent {
+  id: number;
+  event_type:
+    | 'page_view'
+    | 'search'
+    | 'sector_view'
+    | 'tool_use'
+    | 'signup'
+    | 'onboarding_complete'
+    | 'canvas_create'
+    | 'report_request'
+    | 'suggestion_submit';
+  path?: string | null;
+  referrer?: string | null;
+  user_id?: string | null;
+  session_id?: string | null;
+  /**
+   * Best-effort from Cloudflare CF-IPCountry header.
+   */
+  country?: string | null;
+  /**
+   * Raw user-agent — useful for detecting bots later.
+   */
+  ua?: string | null;
+  /**
+   * Freeform per-event bag — search q, sector mor_code, tool name, referrer path, etc.
+   */
+  meta?:
+    | {
+        [k: string]: unknown;
+      }
+    | unknown[]
+    | string
+    | number
+    | boolean
+    | null;
+  updatedAt: string;
+  createdAt: string;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv".
  */
 export interface PayloadKv {
@@ -854,91 +899,6 @@ export interface PayloadKv {
  */
 export interface PayloadLockedDocument {
   id: number;
-  document?:
-    | ({
-        relationTo: 'admins';
-        value: number | Admin;
-      } | null)
-    | ({
-        relationTo: 'business-sectors';
-        value: number | BusinessSector;
-      } | null)
-    | ({
-        relationTo: 'sector-categories';
-        value: number | SectorCategory;
-      } | null)
-    | ({
-        relationTo: 'sector-license-requirements';
-        value: number | SectorLicenseRequirement;
-      } | null)
-    | ({
-        relationTo: 'sector-competency-certificates';
-        value: number | SectorCompetencyCertificate;
-      } | null)
-    | ({
-        relationTo: 'sector-approvals';
-        value: number | SectorApproval;
-      } | null)
-    | ({
-        relationTo: 'sector-costs';
-        value: number | SectorCost;
-      } | null)
-    | ({
-        relationTo: 'sector-steps';
-        value: number | SectorStep;
-      } | null)
-    | ({
-        relationTo: 'sector-documents';
-        value: number | SectorDocument;
-      } | null)
-    | ({
-        relationTo: 'reports';
-        value: number | Report;
-      } | null)
-    | ({
-        relationTo: 'experts';
-        value: number | Expert;
-      } | null)
-    | ({
-        relationTo: 'market-research';
-        value: number | MarketResearch;
-      } | null)
-    | ({
-        relationTo: 'pages';
-        value: number | Page;
-      } | null)
-    | ({
-        relationTo: 'blog-posts';
-        value: number | BlogPost;
-      } | null)
-    | ({
-        relationTo: 'media';
-        value: number | Media;
-      } | null)
-    | ({
-        relationTo: 'saved-sectors';
-        value: number | SavedSector;
-      } | null)
-    | ({
-        relationTo: 'saved-reports';
-        value: number | SavedReport;
-      } | null)
-    | ({
-        relationTo: 'user-checklists';
-        value: number | UserChecklist;
-      } | null)
-    | ({
-        relationTo: 'report-requests';
-        value: number | ReportRequest;
-      } | null)
-    | ({
-        relationTo: 'news-sources';
-        value: number | NewsSource;
-      } | null)
-    | ({
-        relationTo: 'planning-canvases';
-        value: number | PlanningCanvase;
-      } | null);
   globalSlug?: string | null;
   user: {
     relationTo: 'admins';
@@ -1427,6 +1387,22 @@ export interface PlanningCanvasesSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "page-events_select".
+ */
+export interface PageEventsSelect<T extends boolean = true> {
+  event_type?: T;
+  path?: T;
+  referrer?: T;
+  user_id?: T;
+  session_id?: T;
+  country?: T;
+  ua?: T;
+  meta?: T;
+  updatedAt?: T;
+  createdAt?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
  * via the `definition` "payload-kv_select".
  */
 export interface PayloadKvSelect<T extends boolean = true> {
@@ -1438,7 +1414,6 @@ export interface PayloadKvSelect<T extends boolean = true> {
  * via the `definition` "payload-locked-documents_select".
  */
 export interface PayloadLockedDocumentsSelect<T extends boolean = true> {
-  document?: T;
   globalSlug?: T;
   user?: T;
   updatedAt?: T;

@@ -4,6 +4,7 @@ import { CommandPaletteProvider } from '@/components/command-palette/command-pal
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { SuggestionBox } from '@/components/suggestion-box'
 import { requireUser } from '@/lib/require-user'
+import { isSuperAdmin } from '@/lib/is-admin'
 import { AccountMenu } from './account-menu'
 import { SidebarNav } from './sidebar-nav'
 import { MobileBottomNav } from './mobile-bottom-nav'
@@ -31,7 +32,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </Link>
           </div>
 
-          <SidebarNav />
+          <SidebarNav isAdmin={isSuperAdmin(user)} />
 
           <div className="border-t border-border p-3">
             <AccountMenu

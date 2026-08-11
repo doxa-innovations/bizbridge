@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { normalizeDatabaseUrl } from '@/lib/db-url'
 import { Pool } from 'pg'
+import { getPayloadClient } from '@/lib/payload'
+import { getCurrentUser } from '@/lib/auth-server'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
@@ -164,6 +166,29 @@ export async function GET(req: Request) {
       `,
       [pattern, q, limit],
     )
+
+    // Fire-and-forget analytics event so the super-admin dashboard
+    // can rank top search queries. Wrapped in try/catch — a write
+    // failure here must never affect the response.
+    ;(async () => {
+      try {
+        const user = await getCurrentUser().catch(() => null)
+        const payload = await getPayloadClient()
+        await payload.create({
+          collection: 'page-events',
+          data: {
+            event_type: 'search',
+            path: '/api/sectors/search',
+            user_id: user?.id ?? null,
+            meta: { q, hits: res.rows.length },
+          },
+          overrideAccess: true,
+        })
+      } catch (err) {
+        // eslint-disable-next-line no-console
+        console.warn('[sectors/search] event log failed', (err as Error).message)
+      }
+    })()
 
     return NextResponse.json({ hits: res.rows })
   } catch (err) {
