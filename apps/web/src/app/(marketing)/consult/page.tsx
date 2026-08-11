@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Check, Mail, MessageCircle, Sparkles } from 'lucide-react'
+import { Calendar, Check, Mail, MessageCircle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -21,7 +21,7 @@ export default function ConsultPage() {
         <div className="container-page py-16 sm:py-20">
           <div className="mx-auto max-w-3xl text-center">
             <Badge variant="brand" className="mb-5 inline-flex">
-              <Sparkles className="h-3 w-3" /> Book a consult
+              <Calendar className="h-3 w-3" /> Book a consult
             </Badge>
             <h1 className="text-balance text-4xl font-semibold tracking-crisp sm:text-5xl lg:text-6xl">
               Have a business idea?{' '}

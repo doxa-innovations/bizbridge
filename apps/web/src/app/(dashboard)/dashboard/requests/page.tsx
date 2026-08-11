@@ -57,9 +57,9 @@ export default async function RequestsPage() {
             Your report requests.
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-ink-muted">
-            When you request a report and upload payment proof, it lands here as
-            <em> pending</em>. An admin verifies against the Telebirr / CBE dashboard —
-            usually within a business day — and the download unlocks for 30 days.
+            When you request a report and upload (or DM) payment proof, it lands here as
+            <em> pending</em>. An admin verifies against the Telebirr dashboard — usually
+            within a business day — and the download unlocks for 30 days.
           </p>
         </div>
         {rows.length > 0 ? (

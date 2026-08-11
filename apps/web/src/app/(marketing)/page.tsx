@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, ArrowUpRight, Check, Code2, FileText, Handshake, ListChecks, MapPin, MessageCircle, Sparkles } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, Check, Code2, FileText, Handshake, ListChecks, MapPin, MessageCircle } from 'lucide-react'
 import { tryPayload } from '@/lib/payload'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'

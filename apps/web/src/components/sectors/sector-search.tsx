@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Search, Sparkles } from 'lucide-react'
+import { Search, SearchCheck } from 'lucide-react'
 import { SectorDeepPicker } from '@/components/sectors/sector-deep-picker'
 
 interface Props {
@@ -56,7 +56,7 @@ export function SectorSearch({ basePath = '/sectors' }: Props) {
           onClick={() => setDeepOpen(true)}
           className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-brand/40 bg-brand/10 px-4 text-sm font-medium text-brand transition-colors hover:bg-brand/15"
         >
-          <Sparkles className="h-4 w-4" /> Find by what it does
+          <SearchCheck className="h-4 w-4" /> Find by what it does
         </button>
       </div>
       <p className="pl-1 text-[11px] text-ink-faint">

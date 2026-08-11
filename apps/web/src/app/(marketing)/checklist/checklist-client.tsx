@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { Check, Clock, Landmark, Printer, RotateCcw, Sparkles } from 'lucide-react'
+import { Check, CheckCircle2, Clock, Landmark, Printer, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -354,7 +354,7 @@ function Celebration() {
             />
           )
         })}
-        <Sparkles className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 animate-scale-in text-accent" />
+        <CheckCircle2 className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 animate-scale-in text-accent" />
       </div>
     </div>
   )

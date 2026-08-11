@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowRight, ArrowUpRight, GitCompareArrows, PiggyBank, Sparkles, Wand2 } from 'lucide-react'
+import { ArrowRight, ArrowUpRight, ClipboardList, GitCompareArrows, MessageCircle, PiggyBank } from 'lucide-react'
 import { requireUser } from '@/lib/require-user'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -60,7 +60,7 @@ export default async function BrainstormPage() {
         <Card className="flex flex-col p-6">
           <div className="mb-3 flex items-center gap-2">
             <span className="grid h-9 w-9 place-items-center rounded-md bg-brand/15 text-brand">
-              <Wand2 className="h-4 w-4" />
+              <ClipboardList className="h-4 w-4" />
             </span>
             <p className="text-sm font-semibold text-ink">Answer 5 questions</p>
           </div>
@@ -107,7 +107,7 @@ export default async function BrainstormPage() {
       <Card className="border-dashed p-6">
         <div className="flex items-start gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-md bg-brand/15 text-brand">
-            <Sparkles className="h-4 w-4" />
+            <MessageCircle className="h-4 w-4" />
           </span>
           <div className="flex-1">
             <p className="text-sm font-semibold text-ink">Stuck between two ideas?</p>

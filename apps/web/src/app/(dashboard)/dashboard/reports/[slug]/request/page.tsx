@@ -75,8 +75,7 @@ export default async function RequestReportPage({ params }: PageProps) {
           Pay to
         </p>
         <div className="mt-2 space-y-1 font-mono text-xs">
-          <p><span className="text-ink-muted">Telebirr:</span> 0912 345 678 (Cheri Demeke)</p>
-          <p><span className="text-ink-muted">CBE Birr:</span> 1000 xxxx xxxx</p>
+          <p><span className="text-ink-muted">Telebirr:</span> 0989 932 714 (Cheri)</p>
         </div>
         <p className="mt-2 text-[11px] text-ink-faint">
           Send ETB {report.price_birr?.toLocaleString() ?? '—'} then attach the screenshot.

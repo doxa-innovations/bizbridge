@@ -18,6 +18,7 @@ export const UserChecklists: CollectionConfig = {
     defaultColumns: ['user_id', 'sector', 'progress_pct', 'updatedAt'],
     useAsTitle: 'user_id',
   },
+  lockDocuments: false,
   access: {
     read: isAdmin,
     create: isAdmin,

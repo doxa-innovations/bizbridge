@@ -113,14 +113,14 @@ export function RequestDataForm() {
               <MessageCircle className="h-3 w-3" /> Can&apos;t upload right now?
             </p>
             <p className="mt-1">
-              Skip the file and submit — then DM your Telebirr / CBE Birr screenshot to{' '}
+              Skip the file and submit — then DM your Telebirr screenshot to{' '}
               <a
-                href="https://t.me/fidadelivery"
+                href="https://t.me/cherireal7"
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium text-brand hover:underline"
               >
-                @fidadelivery
+                @cherireal7
               </a>{' '}
               with your request title so we can match it. Verification takes 24–48 h either way.
             </p>

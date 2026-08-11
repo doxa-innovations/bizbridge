@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Compass } from 'lucide-react'
+import { ArrowRight, Map } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
@@ -9,7 +9,7 @@ export default function DashboardNotFound() {
       <Card className="p-8">
         <div className="flex items-start gap-3">
           <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand/15 text-brand">
-            <Compass className="h-5 w-5" />
+            <Map className="h-5 w-5" />
           </span>
           <div className="flex-1">
             <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">

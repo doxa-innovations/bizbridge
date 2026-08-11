@@ -13,6 +13,7 @@ export const SavedReports: CollectionConfig = {
     defaultColumns: ['user_id', 'report', 'saved_at'],
     useAsTitle: 'user_id',
   },
+  lockDocuments: false,
   access: {
     read: isAdmin,
     create: isAdmin,

@@ -9,9 +9,12 @@ interface CategorySectionProps {
     icon: string | null
   }
   sectors: SectorCardData[]
+  /** Threaded down to SectorCard so each card links to the correct
+   *  shell (marketing vs dashboard). */
+  basePath?: string
 }
 
-export function CategorySection({ category, sectors }: CategorySectionProps) {
+export function CategorySection({ category, sectors, basePath }: CategorySectionProps) {
   if (sectors.length === 0) return null
   return (
     <section className="space-y-4">
@@ -26,7 +29,7 @@ export function CategorySection({ category, sectors }: CategorySectionProps) {
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {sectors.map((s) => (
-          <SectorCard key={String(s.id)} sector={s} />
+          <SectorCard key={String(s.id)} sector={s} basePath={basePath} />
         ))}
       </div>
     </section>

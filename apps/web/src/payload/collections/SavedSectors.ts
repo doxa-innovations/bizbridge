@@ -17,6 +17,7 @@ export const SavedSectors: CollectionConfig = {
     defaultColumns: ['user_id', 'sector', 'saved_at'],
     useAsTitle: 'user_id',
   },
+  lockDocuments: false,
   access: {
     read: isAdmin,
     create: isAdmin,

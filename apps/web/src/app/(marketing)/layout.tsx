@@ -151,6 +151,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
                 links={[
                   { href: '/resources', label: 'Legal resources' },
                   { href: '/bishoftu', label: 'Bishoftu Pulse' },
+                  { href: '/companies', label: 'Companies in good standing' },
                   { href: '/about', label: 'About' },
                 ]}
               />

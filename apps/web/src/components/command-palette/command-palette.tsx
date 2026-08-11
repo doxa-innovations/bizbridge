@@ -11,7 +11,7 @@ import {
   LayoutDashboard,
   LineChart,
   ListChecks,
-  Sparkles,
+  SearchCheck,
   Tag,
   Users,
 } from 'lucide-react'
@@ -152,7 +152,7 @@ export function CommandPaletteProvider({ children }: { children: React.ReactNode
               <CommandSeparator />
               <CommandGroup heading="Tools">
                 <CommandItem onSelect={() => navigate('/lookup')}>
-                  <Sparkles /> MOR code lookup
+                  <SearchCheck /> MOR code lookup
                 </CommandItem>
                 <CommandItem onSelect={() => navigate('/compare')}>
                   <GitCompareArrows /> Compare sectors

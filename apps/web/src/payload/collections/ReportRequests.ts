@@ -26,6 +26,7 @@ export const ReportRequests: CollectionConfig = {
     defaultColumns: ['createdAt', 'user_id', 'report', 'payment_method', 'status'],
     useAsTitle: 'user_id',
   },
+  lockDocuments: false,
   access: {
     read: isAdmin,
     create: isAdmin,

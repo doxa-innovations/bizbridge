@@ -10,10 +10,20 @@ export interface SectorCardData {
   is_featured: boolean
 }
 
-export function SectorCard({ sector }: { sector: SectorCardData }) {
+/** `basePath` controls where the card links to — `/sectors` on the
+ *  marketing site, `/dashboard/sectors` inside the dashboard shell.
+ *  Without this the dashboard sector grid bounced users back out to
+ *  the marketing site when they clicked a card. */
+export function SectorCard({
+  sector,
+  basePath = '/sectors',
+}: {
+  sector: SectorCardData
+  basePath?: string
+}) {
   return (
     <Link
-      href={`/sectors/${sector.slug}`}
+      href={`${basePath}/${sector.slug}`}
       className="group block rounded-xl border border-slate-200 bg-white p-5 transition hover:border-brand-500 hover:shadow-sm"
     >
       <div className="flex items-start justify-between gap-3">

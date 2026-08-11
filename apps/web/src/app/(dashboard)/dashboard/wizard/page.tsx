@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Sparkles } from 'lucide-react'
+import { ClipboardList } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { requireUser } from '@/lib/require-user'
 import { WizardClient } from '@/app/(marketing)/wizard/wizard-client'
@@ -19,7 +19,7 @@ export default async function DashboardWizardPage() {
       <header>
         <div className="flex items-center gap-2">
           <span className="grid h-8 w-8 place-items-center rounded-md bg-brand/15 text-brand">
-            <Sparkles className="h-4 w-4" />
+            <ClipboardList className="h-4 w-4" />
           </span>
           <Badge variant="brand">Sector wizard</Badge>
         </div>

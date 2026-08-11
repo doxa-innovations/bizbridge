@@ -65,8 +65,8 @@ export default async function ReportsPage() {
           Research reports catalog.
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-ink-muted">
-          Hand-written market briefs on Ethiopian sectors. Purchase with Telebirr or CBE Birr —
-          upload the transaction screenshot, we verify manually within a business day.
+          Hand-written market briefs on Ethiopian sectors. Purchase with Telebirr — upload the
+          transaction screenshot (or DM it), we verify manually within a business day.
         </p>
       </header>
 

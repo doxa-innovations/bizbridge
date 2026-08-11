@@ -33,8 +33,8 @@ export default async function RequestDataPage() {
           Need a doc from MOR, Trade Bureau, or another Ethiopian body?
         </h1>
         <p className="mt-2 text-sm text-ink-muted">
-          Pay via Telebirr or CBE Birr to the account below, then attach the
-          screenshot. We procure the doc — usually within 2–5 business days.
+          Pay via Telebirr to the number below, then attach the screenshot (or DM it on
+          Telegram). We procure the doc — usually within 2–5 business days.
         </p>
       </header>
 
@@ -43,8 +43,7 @@ export default async function RequestDataPage() {
           Pay to
         </p>
         <div className="mt-2 space-y-1 font-mono text-xs">
-          <p><span className="text-ink-muted">Telebirr:</span> 0912 345 678 (Cheri Demeke)</p>
-          <p><span className="text-ink-muted">CBE Birr:</span> 1000 xxxx xxxx</p>
+          <p><span className="text-ink-muted">Telebirr:</span> 0989 932 714 (Cheri)</p>
         </div>
         <p className="mt-2 text-[11px] text-ink-faint">
           Typical fee ETB 150–800 · full refund if we can&apos;t get it.

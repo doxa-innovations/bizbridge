@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, ArrowRight, RotateCcw, Sparkles } from 'lucide-react'
+import { ArrowLeft, ArrowRight, RotateCcw, Target } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -144,7 +144,7 @@ export function WizardClient() {
     return (
       <Card className="p-6 sm:p-10">
         <div className="flex items-center gap-2 text-xs uppercase tracking-wider text-brand">
-          <Sparkles className="h-4 w-4" /> Your matches
+          <Target className="h-4 w-4" /> Your matches
         </div>
         <h2 className="mt-2 text-2xl sm:text-3xl font-semibold tracking-tightish">
           Three sectors worth investigating.

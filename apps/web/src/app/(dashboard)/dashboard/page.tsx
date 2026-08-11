@@ -4,17 +4,21 @@ import {
   ArrowRight,
   ArrowUpRight,
   Bookmark,
-  Compass,
   FileSearch,
   FileText,
   Landmark,
+  MapPin,
   Newspaper,
-  Sparkles,
+  TrendingUp,
 } from 'lucide-react'
 import { requireUser } from '@/lib/require-user'
 import { tryPayload } from '@/lib/payload'
 import { getDashboardConfig, CAPITAL_TIER_META } from '@/lib/dashboard-tailoring'
 import { humanizeSectorName } from '@/lib/humanize-sector-name'
+import {
+  BISHOFTU_OPPORTUNITIES,
+  BISHOFTU_OPPORTUNITY_SOURCES,
+} from '@/lib/bishoftu-opportunities'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -67,7 +71,7 @@ export default async function DashboardPage() {
   const config = getDashboardConfig(user)
 
   const data = await tryPayload(async (payload) => {
-    const [saved, savedReports, reports, totalSectors, activeRequests, categories] = await Promise.all([
+    const [saved, savedReports, reports, totalSectors, activeRequests, categories, bishoftuSectors] = await Promise.all([
       payload.find({
         collection: 'saved-sectors',
         where: { user_id: { equals: user.id } },
@@ -105,7 +109,28 @@ export default async function DashboardPage() {
         limit: 20,
         depth: 0,
       }),
+      // Resolve MOR codes for the Bishoftu opportunities so the row
+      // links land on real seeded sector docs.
+      payload.find({
+        collection: 'business-sectors',
+        where: {
+          or: BISHOFTU_OPPORTUNITIES.map((o) => ({
+            mor_code: { equals: o.sector_mor },
+          })),
+        },
+        limit: BISHOFTU_OPPORTUNITIES.length,
+        depth: 0,
+      }),
     ])
+
+    // Build a MOR-code → slug map so opportunity rows can link to
+    // /dashboard/sectors/<slug>. Any code that isn't in the seed just
+    // renders without a link (rare).
+    const bishoftuSlugByCode = new Map<string, string>()
+    for (const d of bishoftuSectors.docs) {
+      const doc = d as { mor_code?: string; slug?: string }
+      if (doc.mor_code && doc.slug) bishoftuSlugByCode.set(doc.mor_code, doc.slug)
+    }
 
     return {
       savedSectors: (saved.docs as unknown as SavedSector[]).filter((s) => s.sector),
@@ -115,6 +140,7 @@ export default async function DashboardPage() {
       requestsCount: activeRequests.totalDocs,
       requestStatuses: activeRequests.docs.map((r) => (r as { status: string }).status),
       totalCategoriesCount: categories.totalDocs,
+      bishoftuSlugByCode,
     }
   })
 
@@ -125,6 +151,7 @@ export default async function DashboardPage() {
   const totalCategoriesCount = data?.totalCategoriesCount ?? 9
   const requestsCount = data?.requestsCount ?? 0
   const requestStatuses = data?.requestStatuses ?? []
+  const bishoftuSlugByCode = data?.bishoftuSlugByCode ?? new Map<string, string>()
   const verifiedRequests = requestStatuses.filter((s) => s === 'verified').length
   const pendingRequests = requestStatuses.filter((s) => s === 'pending').length
 
@@ -392,6 +419,67 @@ export default async function DashboardPage() {
           </div>
         </section>
       ) : null}
+
+      {/* BISHOFTU OPPORTUNITIES — cited local intel */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
+            <MapPin className="h-3.5 w-3.5" /> Bishoftu opportunities
+          </h2>
+          <Link
+            href="/bishoftu"
+            className="text-xs text-ink-muted hover:text-ink"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Full Pulse →
+          </Link>
+        </div>
+        <Card className="overflow-hidden">
+          <div className="grid divide-y divide-border">
+            {BISHOFTU_OPPORTUNITIES.slice(0, 6).map((o) => {
+              const slug = bishoftuSlugByCode.get(o.sector_mor)
+              const row = (
+                <div className="grid grid-cols-[auto_1fr_auto] items-start gap-4 px-4 py-3 hover:bg-surface-2/40">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-surface-2 font-mono text-xs font-semibold text-ink">
+                    {o.rank}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-ink">{o.name}</p>
+                    <p className="mt-0.5 line-clamp-2 text-xs text-ink-muted">{o.why}</p>
+                    <p className="mt-1 font-mono text-[10px] text-ink-faint">
+                      MOR {o.sector_mor}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <div className="flex items-center gap-1.5">
+                      <TrendingUp className="h-3 w-3 text-brand" />
+                      <span className="font-mono text-[11px] text-ink-muted">
+                        {o.readiness}
+                      </span>
+                    </div>
+                    {slug ? (
+                      <ArrowRight className="h-3.5 w-3.5 text-ink-faint" />
+                    ) : null}
+                  </div>
+                </div>
+              )
+              return slug ? (
+                <Link key={o.rank} href={`/dashboard/sectors/${slug}`}>
+                  {row}
+                </Link>
+              ) : (
+                <div key={o.rank}>{row}</div>
+              )
+            })}
+          </div>
+        </Card>
+        <SourceCite
+          className="mt-2"
+          sources={BISHOFTU_OPPORTUNITY_SOURCES}
+          methodology="Readiness = subjective 0-100 score combining market timing × capital intensity × airport-boom leverage. Curated shortlist, not a directory."
+        />
+      </section>
 
       {/* SAVED SECTORS */}
       <section>
