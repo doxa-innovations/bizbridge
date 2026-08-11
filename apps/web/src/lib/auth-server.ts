@@ -17,6 +17,9 @@ export interface CurrentUser {
   onboardedAt?: Date | null
   onboardingSkippedAt?: Date | null
   locale?: 'en' | 'am' | null
+  marketingOptIn?: boolean | null
+  notificationsLastSeenAt?: Date | null
+  createdAt?: Date | null
 }
 
 function parseJsonArray(raw: unknown): string[] | null {
@@ -66,6 +69,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       onboardedAt: toDate(u.onboardedAt),
       onboardingSkippedAt: toDate(u.onboardingSkippedAt),
       locale: (u.locale as 'en' | 'am' | undefined) ?? null,
+      marketingOptIn: typeof u.marketingOptIn === 'boolean' ? u.marketingOptIn : null,
+      notificationsLastSeenAt: toDate(u.notificationsLastSeenAt),
+      createdAt: toDate(u.createdAt),
     }
   } catch {
     return null

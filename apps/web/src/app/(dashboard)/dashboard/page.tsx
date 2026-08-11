@@ -15,6 +15,7 @@ import { requireUser } from '@/lib/require-user'
 import { tryPayload } from '@/lib/payload'
 import { getDashboardConfig, CAPITAL_TIER_META } from '@/lib/dashboard-tailoring'
 import { humanizeSectorName } from '@/lib/humanize-sector-name'
+import { cn } from '@/lib/cn'
 import {
   BISHOFTU_OPPORTUNITIES,
   BISHOFTU_OPPORTUNITY_SOURCES,
@@ -194,22 +195,45 @@ export default async function DashboardPage() {
         userType={user.userType ?? null}
       />
 
-      {/* ONBOARDING NUDGE — persistent thin banner when user skipped */}
-      {!user.onboardedAt && user.onboardingSkippedAt ? (
-        <Card className="flex flex-wrap items-center gap-4 p-4">
-          <div className="flex-1 min-w-[200px]">
-            <p className="text-sm font-semibold text-ink">Finish setting up your feed</p>
-            <p className="text-xs text-ink-muted">
-              30 seconds. Pick a couple of areas + your budget, and we&apos;ll tailor everything.
-            </p>
-          </div>
-          <Button asChild size="sm">
-            <Link href="/dashboard/onboarding">
-              Do it now <ArrowRight className="h-4 w-4" />
-            </Link>
-          </Button>
-        </Card>
-      ) : null}
+      {/* ONBOARDING NUDGE — escalates in urgency after 3 days + 7 days
+          so the banner stays honest rather than becoming banner-blind. */}
+      {!user.onboardedAt && user.onboardingSkippedAt ? (() => {
+        const daysSinceSkip = Math.floor(
+          (Date.now() - new Date(user.onboardingSkippedAt).getTime()) /
+            (1000 * 60 * 60 * 24),
+        )
+        const urgent = daysSinceSkip >= 7
+        const medium = daysSinceSkip >= 3
+        return (
+          <Card
+            className={cn(
+              'flex flex-wrap items-center gap-4 p-4',
+              urgent && 'border-warn/60 bg-warn/5',
+              medium && !urgent && 'border-brand/50 bg-brand/5',
+            )}
+          >
+            <div className="flex-1 min-w-[200px]">
+              <p className="text-sm font-semibold text-ink">
+                {urgent
+                  ? "Your feed's been generic for a week"
+                  : medium
+                    ? 'Still using the generic feed'
+                    : 'Finish setting up your feed'}
+              </p>
+              <p className="text-xs text-ink-muted">
+                {urgent
+                  ? '30 seconds unlocks tailored sector picks + a home tuned to your budget. Nothing on the site changes if you skip permanently — just less personal.'
+                  : '30 seconds. Pick a couple of areas + your budget, and we\'ll tailor everything.'}
+              </p>
+            </div>
+            <Button asChild size="sm" variant={urgent ? 'primary' : 'primary'}>
+              <Link href="/dashboard/onboarding">
+                {urgent ? 'Do it now — 30s' : 'Do it now'} <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          </Card>
+        )
+      })() : null}
 
       {/* GREETING */}
       <header>

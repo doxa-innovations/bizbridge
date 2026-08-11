@@ -17,7 +17,8 @@
     "seed:fix-names": "tsx src/seed/fix-sector-names.ts",
     "seed:all-bilingual": "tsx src/seed/all-bilingual.ts",
     "tools:parse-mor": "node tools/parse-mor.cjs",
-    "tools:parse-mor-explanation": "node tools/parse-mor-explanation.cjs"
+    "tools:parse-mor-explanation": "node tools/parse-mor-explanation.cjs",
+    "backup:neon": "bash scripts/backup-neon.sh"
   },
   "dependencies": {
     "@bizbridge/shared": "workspace:*",

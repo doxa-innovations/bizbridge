@@ -5,6 +5,8 @@ import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { SuggestionBox } from '@/components/suggestion-box'
 import { requireUser } from '@/lib/require-user'
 import { isSuperAdmin } from '@/lib/is-admin'
+import { loadNotifications } from '@/lib/notifications'
+import { NotificationBell } from './notification-bell'
 import { AccountMenu } from './account-menu'
 import { SidebarNav } from './sidebar-nav'
 import { MobileBottomNav } from './mobile-bottom-nav'
@@ -15,6 +17,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // authenticated so /dashboard/onboarding can render for pre-onboarded
   // users without a redirect loop.
   const user = await requireUser({ skipOnboardingGate: true })
+  const notifications = await loadNotifications(user)
 
   return (
     <CommandPaletteProvider>
@@ -54,6 +57,10 @@ export default async function DashboardLayout({ children }: { children: React.Re
               BizBridge
             </Link>
             <div className="ml-auto flex items-center gap-2">
+              <NotificationBell
+                initialUnread={notifications.unread}
+                items={notifications.items}
+              />
               <ThemeToggle />
               <Link
                 href="/"

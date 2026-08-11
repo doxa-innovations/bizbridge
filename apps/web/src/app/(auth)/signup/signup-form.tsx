@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { signUp } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Turnstile } from '@/components/ui/turnstile'
 
 function safeNext(raw: string | null): string {
   if (!raw) return '/dashboard'
@@ -34,11 +35,51 @@ export function SignupForm() {
   const [marketingOptIn, setMarketingOptIn] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null)
+
+  const turnstileEnabled = Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY)
+
+  const onTurnstileVerify = useCallback((token: string) => {
+    setTurnstileToken(token)
+  }, [])
+  const onTurnstileExpire = useCallback(() => {
+    setTurnstileToken(null)
+  }, [])
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    setLoading(true)
+
+    // Server-side re-verify the Turnstile token before we let signup
+    // proceed. Skipped if Turnstile isn't configured (no site key set).
+    if (turnstileEnabled) {
+      if (!turnstileToken) {
+        setError('Please complete the human-verification step above.')
+        return
+      }
+      setLoading(true)
+      try {
+        const verify = await fetch('/api/verify-turnstile', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ token: turnstileToken }),
+        })
+        const verifyBody = (await verify.json().catch(() => ({}))) as { ok?: boolean }
+        if (!verifyBody.ok) {
+          setError('Verification failed. Try again.')
+          setLoading(false)
+          setTurnstileToken(null)
+          return
+        }
+      } catch {
+        setError('Verification network error. Try again.')
+        setLoading(false)
+        return
+      }
+    } else {
+      setLoading(true)
+    }
+
     try {
       const res = await signUp.email({
         email,
@@ -110,6 +151,9 @@ export function SignupForm() {
           only receive account emails (password reset, verification). No spam either way.
         </span>
       </label>
+      {turnstileEnabled ? (
+        <Turnstile onVerify={onTurnstileVerify} onExpire={onTurnstileExpire} />
+      ) : null}
       {error ? (
         <p className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
           {error}

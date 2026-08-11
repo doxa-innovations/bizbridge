@@ -77,6 +77,9 @@ export const auth = betterAuth({
       // hand-written notes). Transactional email — password reset,
       // verification — is sent regardless.
       marketingOptIn: { type: 'boolean', required: false },
+      // Last time the user opened the notifications bell / marked
+      // read. Nullable = never seen (bell shows count since signup).
+      notificationsLastSeenAt: { type: 'date', required: false },
     },
   },
   /** Fires after any user row is created (signup). We use it to send a

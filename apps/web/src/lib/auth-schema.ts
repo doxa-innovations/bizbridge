@@ -29,6 +29,7 @@ export const user = pgTable('user', {
   onboardingSkippedAt: timestamp('onboarding_skipped_at', { withTimezone: true }),
   locale: text('locale'),
   marketingOptIn: boolean('marketing_opt_in'),
+  notificationsLastSeenAt: timestamp('notifications_last_seen_at', { withTimezone: true }),
 })
 
 export const session = pgTable('session', {

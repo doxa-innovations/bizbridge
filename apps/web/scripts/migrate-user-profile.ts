@@ -25,6 +25,10 @@ const COLUMNS = [
   // an explicit opt-in checkbox on signup — existing rows (before this
   // column) get NULL which is treated as "not opted in" by the export.
   { name: 'marketing_opt_in', type: 'boolean' },
+  // Notifications bell: when the user last opened the popover / marked
+  // notifications read. Report-request status changes AFTER this
+  // timestamp are counted as unread.
+  { name: 'notifications_last_seen_at', type: 'timestamp with time zone' },
 ] as const
 
 async function main() {

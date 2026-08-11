@@ -195,6 +195,72 @@ export const ReportRequests: CollectionConfig = {
         return data
       },
     ],
+    /** Fire an email to the user when their request transitions to
+     *  verified or rejected. Runs after the doc is persisted so we
+     *  send exactly the terminal state, not intermediate drafts.
+     *  Wrapped in try/catch — email failure never blocks the admin
+     *  action. Uses a lazy import so the collection file stays
+     *  cheap at boot time. */
+    afterChange: [
+      async ({ doc, previousDoc }) => {
+        try {
+          const wasFinal =
+            previousDoc?.status === 'verified' || previousDoc?.status === 'rejected'
+          const isFinal = doc.status === 'verified' || doc.status === 'rejected'
+          if (!isFinal || wasFinal) return
+
+          const { sendEmail } = await import('../../lib/email')
+          const { Pool } = await import('pg')
+          const { normalizeDatabaseUrl } = await import('../../lib/db-url')
+
+          const pool = new Pool({
+            connectionString: normalizeDatabaseUrl(process.env.DATABASE_URL),
+            max: 1,
+          })
+          const res = await pool.query<{ email: string; name: string | null }>(
+            'SELECT email, name FROM "user" WHERE id = $1 LIMIT 1',
+            [doc.user_id],
+          )
+          await pool.end()
+          const target = res.rows[0]
+          if (!target) return
+
+          const appUrl =
+            process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') ||
+            'https://biz.doxaplc.com'
+          const title =
+            doc.custom_title ??
+            (typeof doc.report === 'object' && doc.report?.title) ??
+            'your report request'
+
+          if (doc.status === 'verified') {
+            await sendEmail({
+              to: target.email,
+              subject: `[BizBridge] "${title}" verified — download ready`,
+              text:
+                `Hi ${target.name ?? 'there'},\n\n` +
+                `Your request "${title}" has been verified. The download is unlocked for the next 30 days:\n\n` +
+                `${appUrl}/dashboard/requests\n\n` +
+                `— BizBridge`,
+            })
+          } else {
+            await sendEmail({
+              to: target.email,
+              subject: `[BizBridge] "${title}" needs another look`,
+              text:
+                `Hi ${target.name ?? 'there'},\n\n` +
+                `We couldn't verify your request "${title}" as submitted. Open the request page to see the reviewer's note and resubmit if needed:\n\n` +
+                `${appUrl}/dashboard/requests\n\n` +
+                `Reply to this email or DM @cheri_figma on Telegram if you're stuck.\n\n` +
+                `— BizBridge`,
+            })
+          }
+        } catch (err) {
+          // eslint-disable-next-line no-console
+          console.error('[report-requests] afterChange email failed', err)
+        }
+      },
+    ],
   },
   timestamps: true,
 }
