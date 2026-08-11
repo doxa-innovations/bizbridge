@@ -1,77 +1,99 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { ArrowUpRight, BadgeCheck, MapPin } from 'lucide-react'
+import { ArrowUpRight, BadgeCheck, MapPin, Phone } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 
 export const metadata: Metadata = {
   title: 'Bishoftu companies in good standing',
   description:
-    'Bishoftu-area businesses BizBridge has personally verified as active, well-run, and worth introducing. Curated, not paid — inclusion is by observation.',
+    'Bishoftu-area businesses BizBridge has personally verified as active. Descriptions and contact details are pulled directly from each company\'s own site — nothing invented.',
 }
 
 interface Company {
   name: string
+  legal_name?: string
   category: string
   city: string
+  /** Copy pulled verbatim from the source page (meta description or
+   *  on-page tagline). Kept short. */
   what_they_do: string
-  since?: string
+  services?: string[]
+  hours?: string
+  phone?: string
+  email?: string
   url?: string
   telegram?: string
-  logo_url?: string
+  instagram?: string
+  tiktok?: string
+  facebook?: string
   status: 'verified' | 'upcoming'
+  /** URL(s) we pulled the facts on this row from. Rendered as a small
+   *  "source" chip so readers can verify. */
+  sources: string[]
 }
 
 /**
- * Small, hand-curated list — NOT a directory. BizBridge adds companies
- * we've personally worked with, visited, or verified through a partner
- * we trust. "Good standing" means: active licence, consistent
- * operations, no red flags from our operator interviews.
+ * Small, hand-curated list — NOT a directory. Every fact on every row
+ * is sourced from the company's own site (see `sources` per row). We do
+ * not invent ratings, revenue claims, or historical dates.
  *
- * Never accept a paid listing here. If someone offers, refer them to
- * the /partners page (which is also unpaid but broader).
+ * Inclusion is unpaid and by personal verification only. If someone
+ * offers to pay for a listing, refer them elsewhere.
  */
 const COMPANIES: Company[] = [
   {
     name: 'Fida Delivery',
-    category: 'Logistics · Last-mile delivery',
-    city: 'Bishoftu',
+    legal_name: 'Fida Delivery PLC',
+    category: 'Logistics & delivery',
+    city: 'Bishoftu, Oromia',
     what_they_do:
-      'On-demand food + parcel delivery across Bishoftu. First proper delivery platform in the city; ~30 riders on-shift as of Aug 2026.',
-    since: '2026',
+      'Order from restaurants, shops, groceries, and pharmacies across Bishoftu, Ethiopia. Fida delivers from every local partner in one app.',
+    services: ['Food delivery', 'Parcel delivery', 'Grocery delivery', 'Pharmacy delivery'],
+    hours: 'Daily 08:00–22:00',
+    phone: '+251 94 355 8899',
+    email: 'info@fidadelivery.et',
     url: 'https://fidadelivery.com',
     telegram: 'https://t.me/fidadelivery',
+    instagram: 'https://instagram.com/fida__delivery',
+    tiktok: 'https://tiktok.com/@fida_delivery',
+    facebook: 'https://facebook.com/fidadelivery',
     status: 'verified',
+    sources: ['https://fidadelivery.com'],
   },
   {
     name: 'Doxa Innovations',
-    category: 'Software · Booking + hotel-tech',
-    city: 'Bishoftu',
+    legal_name: 'Doxa Innovative Software Development PLC',
+    category: 'Creative agency · design & software',
+    city: 'Ethiopia',
     what_they_do:
-      'Multi-tenant hotel booking platform, POS integrations, and custom software for Ethiopian hospitality operators.',
-    since: '2025',
+      'An online creative hub dedicated to helping businesses establish a strong and professional brand identity at an affordable price. Provides branding, design and web / software development.',
+    services: ['Branding & design', 'Web development', 'Software development', 'UI/UX'],
     url: 'https://doxaplc.com',
     status: 'verified',
+    sources: ['https://doxaplc.com'],
   },
   {
     name: 'Classic Noodle',
-    category: 'F&B · Asian-fusion casual dining',
+    category: 'Restaurant · breakfast, burger, noodle, pizza, dinner',
     city: 'Bishoftu',
     what_they_do:
-      'The go-to noodle house on the main strip. Consistent quality, sensible pricing, honest hours.',
+      'On-menu today: Classic Burger (ETB 670), Pepperoni Pizza Large (ETB 860), Vegetable Pizza Large (ETB 570), Vegetable Fasting Fried Rice (ETB 630), Chicken Salad Full (ETB 555), Omelet breakfast (ETB 205).',
     url: 'https://classicnoodle.com',
     status: 'verified',
+    sources: ['https://classicnoodle.com'],
   },
 ]
 
 const UPCOMING: Company[] = [
   {
-    name: 'More coming soon',
+    name: 'More coming',
     category: '—',
     city: 'Bishoftu',
     what_they_do:
-      'We add businesses to this list as we personally verify them. If you\'re running a Bishoftu-area operation and want a look, DM us on Telegram.',
+      'We add businesses only after we\'ve personally verified them. If you run a Bishoftu-area operation and want a look, DM us on Telegram.',
     status: 'upcoming',
+    sources: [],
   },
 ]
 
@@ -87,9 +109,9 @@ export default function CompaniesPage() {
             Bishoftu companies in good standing.
           </h1>
           <p className="mt-4 max-w-2xl text-pretty text-ink-muted">
-            A small, hand-picked list of Bishoftu-area businesses we&apos;ve personally verified
-            as active and well-run. Not a directory, not a paid-for listing, not exhaustive —
-            just companies we&apos;d comfortably introduce a friend or a diaspora investor to.
+            A small, hand-picked list. Everything on each card is pulled from the company&apos;s
+            own website — descriptions, prices, hours, and contact details. We don&apos;t
+            invent ratings or performance claims, and inclusion is unpaid.
           </p>
         </div>
       </section>
@@ -121,8 +143,8 @@ export default function CompaniesPage() {
           >
             DM @cherireal7 on Telegram
           </a>
-          . We&apos;ll ask for your licence, tax status, and 2-3 customer references. No
-          paywall — the bar is just credibility.
+          . We&apos;ll ask for your licence, tax status, and 2–3 customer references. No
+          paywall — the bar is credibility.
         </p>
       </section>
     </div>
@@ -135,7 +157,10 @@ function CompanyCard({ c }: { c: Company }) {
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-ink">{c.name}</p>
-          <p className="mt-0.5 text-[11px] text-ink-faint">{c.category}</p>
+          {c.legal_name && c.legal_name !== c.name ? (
+            <p className="mt-0.5 font-mono text-[10px] text-ink-faint">{c.legal_name}</p>
+          ) : null}
+          <p className="mt-1 text-[11px] text-ink-faint">{c.category}</p>
         </div>
         {c.status === 'verified' ? (
           <Badge variant="brand" className="shrink-0 gap-1">
@@ -147,37 +172,80 @@ function CompanyCard({ c }: { c: Company }) {
           </Badge>
         )}
       </div>
+
       <p className="mt-3 flex-1 text-xs leading-relaxed text-ink-muted">{c.what_they_do}</p>
-      <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] text-ink-faint">
+
+      {c.services && c.services.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-1">
+          {c.services.map((s) => (
+            <span
+              key={s}
+              className="rounded-full border border-border/70 bg-surface px-2 py-0.5 text-[10px] text-ink-muted"
+            >
+              {s}
+            </span>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-ink-faint">
         <span className="inline-flex items-center gap-1">
           <MapPin className="h-3 w-3" /> {c.city}
         </span>
-        {c.since ? <span>· since {c.since}</span> : null}
+        {c.hours ? <span>· {c.hours}</span> : null}
+        {c.phone ? (
+          <span className="inline-flex items-center gap-1">
+            <Phone className="h-3 w-3" /> {c.phone}
+          </span>
+        ) : null}
+        {c.email ? (
+          <a href={`mailto:${c.email}`} className="hover:text-brand">
+            {c.email}
+          </a>
+        ) : null}
       </div>
-      {c.url || c.telegram ? (
+
+      {c.url || c.telegram || c.instagram || c.tiktok || c.facebook ? (
         <div className="mt-3 flex flex-wrap gap-2">
-          {c.url ? (
-            <Link
-              href={c.url}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded border border-border bg-surface px-2 py-1 text-[11px] text-ink hover:border-brand/40 hover:text-brand"
-            >
-              Website <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          ) : null}
-          {c.telegram ? (
-            <Link
-              href={c.telegram}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 rounded border border-border bg-surface px-2 py-1 text-[11px] text-ink hover:border-brand/40 hover:text-brand"
-            >
-              Telegram <ArrowUpRight className="h-3 w-3" />
-            </Link>
-          ) : null}
+          {c.url ? <SocialChip href={c.url} label="Website" /> : null}
+          {c.telegram ? <SocialChip href={c.telegram} label="Telegram" /> : null}
+          {c.instagram ? <SocialChip href={c.instagram} label="Instagram" /> : null}
+          {c.tiktok ? <SocialChip href={c.tiktok} label="TikTok" /> : null}
+          {c.facebook ? <SocialChip href={c.facebook} label="Facebook" /> : null}
         </div>
       ) : null}
+
+      {c.sources.length > 0 ? (
+        <p className="mt-3 border-t border-border/50 pt-2 font-mono text-[10px] text-ink-faint">
+          Source:{' '}
+          {c.sources.map((s, i) => (
+            <span key={s}>
+              <a
+                href={s}
+                target="_blank"
+                rel="noreferrer"
+                className="text-ink-muted hover:text-brand"
+              >
+                {s.replace(/^https?:\/\//, '')}
+              </a>
+              {i < c.sources.length - 1 ? ' · ' : ''}
+            </span>
+          ))}
+        </p>
+      ) : null}
     </Card>
+  )
+}
+
+function SocialChip({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1 rounded border border-border bg-surface px-2 py-1 text-[11px] text-ink hover:border-brand/40 hover:text-brand"
+    >
+      {label} <ArrowUpRight className="h-3 w-3" />
+    </Link>
   )
 }
