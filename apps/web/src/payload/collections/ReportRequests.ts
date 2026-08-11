@@ -111,8 +111,11 @@ export const ReportRequests: CollectionConfig = {
       name: 'payment_screenshot',
       type: 'upload',
       relationTo: 'media',
-      required: true,
-      admin: { description: 'Screenshot proof of the payment; PNG / JPEG / WebP up to 5MB.' },
+      required: false,
+      admin: {
+        description:
+          "Screenshot proof of payment (optional). Users who can't upload submit without it and DM the screenshot to admin on Telegram.",
+      },
     },
     {
       name: 'status',

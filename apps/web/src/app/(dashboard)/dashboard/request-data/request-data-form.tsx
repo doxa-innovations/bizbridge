@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowRight, Loader2, Upload } from 'lucide-react'
+import { ArrowRight, Loader2, MessageCircle, Upload, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -10,9 +10,10 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/cn'
 
 /**
- * Minimal ask. Two fields, one button. Admin reads the payment method,
- * reference number and amount off the screenshot at verification time —
- * no need to make the user re-type what's already in the image.
+ * Minimal ask. What you need + optional screenshot. Screenshot is
+ * optional so users who can't upload (spotty connection, phone camera
+ * lag, etc.) can still submit — instructions to DM the screenshot on
+ * Telegram appear inline as the alternative.
  */
 export function RequestDataForm() {
   const router = useRouter()
@@ -29,20 +30,16 @@ export function RequestDataForm() {
       setError('Tell us what you need in a sentence.')
       return
     }
-    if (!file) {
-      setError('Attach the payment screenshot.')
-      return
-    }
 
     const form = new FormData()
     form.append('requestType', 'custom')
     form.append('customTitle', title.trim())
     if (note.trim()) form.append('customNotes', note.trim())
-    // Placeholders — admin reads the real values off the screenshot at
-    // verification and updates the row.
+    // Placeholders — admin reads the real values off the screenshot
+    // (or the follow-up Telegram DM) at verify.
     form.append('paymentMethod', 'telebirr')
     form.append('amountEtb', '0')
-    form.append('screenshot', file)
+    if (file) form.append('screenshot', file)
 
     startTransition(async () => {
       try {
@@ -76,7 +73,12 @@ export function RequestDataForm() {
         </div>
 
         <div>
-          <Label htmlFor="screenshot">Payment screenshot</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="screenshot">Payment screenshot</Label>
+            <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
+              Optional
+            </span>
+          </div>
           <label
             htmlFor="screenshot"
             className={cn(
@@ -87,20 +89,42 @@ export function RequestDataForm() {
             )}
           >
             <Upload className="h-4 w-4" />
-            {file ? file.name : 'PNG / JPEG / WebP up to 5 MB'}
+            {file ? file.name : 'Attach PNG / JPEG / WebP (up to 5 MB)'}
             <input
               id="screenshot"
               name="screenshot"
               type="file"
               accept="image/png,image/jpeg,image/webp"
-              required
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
               className="sr-only"
             />
           </label>
-          <p className="mt-1 text-[11px] text-ink-faint">
-            We read the amount, reference and method off the screenshot at verify time.
-          </p>
+          {file ? (
+            <button
+              type="button"
+              onClick={() => setFile(null)}
+              className="mt-1 inline-flex items-center gap-1 text-[11px] text-ink-faint hover:text-danger"
+            >
+              <X className="h-3 w-3" /> Remove
+            </button>
+          ) : null}
+          <div className="mt-2 rounded-md border border-border/60 bg-surface/40 p-3 text-[11px] leading-relaxed text-ink-muted">
+            <p className="flex items-center gap-1.5 font-medium text-ink">
+              <MessageCircle className="h-3 w-3" /> Can&apos;t upload right now?
+            </p>
+            <p className="mt-1">
+              Skip the file and submit — then DM your Telebirr / CBE Birr screenshot to{' '}
+              <a
+                href="https://t.me/fidadelivery"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-brand hover:underline"
+              >
+                @fidadelivery
+              </a>{' '}
+              with your request title so we can match it. Verification takes 24–48 h either way.
+            </p>
+          </div>
         </div>
 
         <details className="rounded-md border border-border/70 bg-surface/50 p-3">

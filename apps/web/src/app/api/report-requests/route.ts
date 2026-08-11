@@ -6,34 +6,24 @@ const ACCEPTED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp'])
 const MAX_SIZE_BYTES = 5 * 1024 * 1024 // 5 MB
 const MAX_PENDING_PER_HOUR = 3
 
-// Payment screenshots need durable storage — refuse the upload in production
-// if R2 isn't configured, rather than silently writing to the ephemeral
-// container filesystem where the file vanishes on next restart. Matches the
-// boot warning in payload.config.ts.
-function assertDurableStorage(): NextResponse | null {
-  if (process.env.NODE_ENV !== 'production') return null
-  const r2Enabled = Boolean(
+// Payment screenshots are optional. When present in prod we still need
+// durable storage so a container restart doesn't nuke them; if R2 isn't
+// configured we accept the request WITHOUT the file and lean on the
+// Telegram-DM fallback (the request form tells the user to DM the
+// screenshot instead). Requests without a screenshot are always accepted.
+function canPersistScreenshots(): boolean {
+  if (process.env.NODE_ENV !== 'production') return true
+  return Boolean(
     process.env.R2_ACCESS_KEY_ID &&
       process.env.R2_SECRET_ACCESS_KEY &&
       process.env.R2_BUCKET_NAME &&
       process.env.R2_ENDPOINT,
-  )
-  if (r2Enabled) return null
-  return NextResponse.json(
-    {
-      error:
-        'Storage misconfigured — payment screenshots cannot be persisted. Contact admin (R2 credentials missing).',
-    },
-    { status: 503 },
   )
 }
 
 export async function POST(req: NextRequest) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
-
-  const storageError = assertDurableStorage()
-  if (storageError) return storageError
 
   let form: FormData
   try {
@@ -54,17 +44,29 @@ export async function POST(req: NextRequest) {
   if (paymentMethod !== 'telebirr' && paymentMethod !== 'cbe_birr') {
     return NextResponse.json({ error: 'invalid paymentMethod' }, { status: 400 })
   }
-  if (!(screenshot instanceof File)) {
-    return NextResponse.json({ error: 'screenshot file required' }, { status: 400 })
-  }
-  if (!ACCEPTED_MIME.has(screenshot.type)) {
-    return NextResponse.json(
-      { error: 'screenshot must be PNG, JPEG, or WebP' },
-      { status: 415 },
-    )
-  }
-  if (screenshot.size > MAX_SIZE_BYTES) {
-    return NextResponse.json({ error: 'screenshot exceeds 5 MB' }, { status: 413 })
+
+  // Screenshot is optional. If provided, it must be a real image within
+  // limits — otherwise the user can DM it via Telegram (form UI explains).
+  const hasScreenshot = screenshot instanceof File && screenshot.size > 0
+  if (hasScreenshot) {
+    if (!ACCEPTED_MIME.has(screenshot.type)) {
+      return NextResponse.json(
+        { error: 'screenshot must be PNG, JPEG, or WebP' },
+        { status: 415 },
+      )
+    }
+    if (screenshot.size > MAX_SIZE_BYTES) {
+      return NextResponse.json({ error: 'screenshot exceeds 5 MB' }, { status: 413 })
+    }
+    if (!canPersistScreenshots()) {
+      return NextResponse.json(
+        {
+          error:
+            'Storage is not configured for uploads right now. Please submit without the file and DM your screenshot on Telegram instead.',
+        },
+        { status: 503 },
+      )
+    }
   }
 
   const payload = await getPayloadClient()
@@ -132,24 +134,31 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // Upload the screenshot into the media collection
-  const buffer = Buffer.from(await screenshot.arrayBuffer())
-  const media = await payload.create({
-    collection: 'media',
-    data: {
-      alt:
-        requestType === 'catalog'
-          ? `Payment screenshot for report id ${reportId} — user ${user.id}`
-          : `Payment screenshot for custom request "${customTitle}" — user ${user.id}`,
-    },
-    file: {
-      data: buffer,
-      mimetype: screenshot.type,
-      name: screenshot.name || `payment-${Date.now()}.png`,
-      size: screenshot.size,
-    },
-    overrideAccess: true,
-  })
+  // Upload the screenshot into the media collection — only when one was
+  // attached. Requests without a screenshot are created with
+  // payment_screenshot: null and the admin sees a "Telegram DM pending"
+  // hint on the row.
+  let mediaId: number | null = null
+  if (hasScreenshot) {
+    const buffer = Buffer.from(await screenshot.arrayBuffer())
+    const media = await payload.create({
+      collection: 'media',
+      data: {
+        alt:
+          requestType === 'catalog'
+            ? `Payment screenshot for report id ${reportId} — user ${user.id}`
+            : `Payment screenshot for custom request "${customTitle}" — user ${user.id}`,
+      },
+      file: {
+        data: buffer,
+        mimetype: screenshot.type,
+        name: screenshot.name || `payment-${Date.now()}.png`,
+        size: screenshot.size,
+      },
+      overrideAccess: true,
+    })
+    mediaId = Number((media as { id: number | string }).id)
+  }
 
   // Create the request
   const created = await payload.create({
@@ -165,7 +174,7 @@ export async function POST(req: NextRequest) {
       amount_usd: amountUsd,
       payment_method: paymentMethod,
       payment_reference: typeof paymentReference === 'string' ? paymentReference : undefined,
-      payment_screenshot: Number((media as { id: number | string }).id),
+      ...(mediaId !== null ? { payment_screenshot: mediaId } : {}),
       status: 'pending',
     },
     overrideAccess: true,

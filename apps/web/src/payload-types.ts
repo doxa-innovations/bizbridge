@@ -725,9 +725,9 @@ export interface ReportRequest {
    */
   payment_reference?: string | null;
   /**
-   * Screenshot proof of the payment; PNG / JPEG / WebP up to 5MB.
+   * Screenshot proof of payment (optional). Users who can't upload submit without it and DM the screenshot to admin on Telegram.
    */
-  payment_screenshot: number | Media;
+  payment_screenshot?: (number | null) | Media;
   status: 'pending' | 'verified' | 'rejected';
   /**
    * Visible to the user on their /dashboard/requests page.

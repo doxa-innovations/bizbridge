@@ -6,6 +6,7 @@ import { signUp } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { CountryPicker } from '@/components/ui/country-picker'
 
 const USER_TYPES = [
   { value: 'local', label: 'Local entrepreneur' },
@@ -97,15 +98,8 @@ export function SignupForm() {
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-1.5">
-          <Label htmlFor="country">Country (ISO)</Label>
-          <Input
-            id="country"
-            value={country}
-            onChange={(e) => setCountry(e.target.value.toUpperCase())}
-            maxLength={2}
-            required
-            className="uppercase"
-          />
+          <Label htmlFor="country">Country</Label>
+          <CountryPicker id="country" value={country} onChange={setCountry} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="user_type">I am a…</Label>

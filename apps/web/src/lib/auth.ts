@@ -11,6 +11,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
 import * as schema from './auth-schema'
 import { normalizeDatabaseUrl } from './db-url'
+import { sendEmail } from './email'
 
 const connectionString = normalizeDatabaseUrl(process.env.DATABASE_URL)
 
@@ -27,6 +28,22 @@ export const auth = betterAuth({
     enabled: true,
     autoSignIn: true,
     minPasswordLength: 8,
+    /** Wired through the shared email helper — routes to Resend when
+     *  RESEND_API_KEY is set, otherwise falls back to the Telegram
+     *  admin bridge, otherwise logs to the server console (dev only). */
+    sendResetPassword: async ({ user, url }) => {
+      await sendEmail({
+        to: user.email,
+        subject: 'Reset your BizBridge password',
+        text:
+          `Hi ${user.name ?? 'there'},\n\n` +
+          `Someone (hopefully you) asked to reset the password on your BizBridge account.\n\n` +
+          `Open this link to pick a new one — it expires in 1 hour:\n\n` +
+          `${url}\n\n` +
+          `If it wasn't you, ignore this email and your password stays put.`,
+      })
+    },
+    resetPasswordTokenExpiresIn: 3600,
   },
   session: {
     expiresIn: 60 * 60 * 24 * 30, // 30 days
