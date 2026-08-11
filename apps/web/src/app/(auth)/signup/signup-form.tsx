@@ -62,7 +62,7 @@ export function SignupForm() {
         const verify = await fetch('/api/verify-turnstile', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ token: turnstileToken }),
+          body: JSON.stringify({ token: turnstileToken, action: 'signup' }),
         })
         const verifyBody = (await verify.json().catch(() => ({}))) as { ok?: boolean }
         if (!verifyBody.ok) {
@@ -152,7 +152,11 @@ export function SignupForm() {
         </span>
       </label>
       {turnstileEnabled ? (
-        <Turnstile onVerify={onTurnstileVerify} onExpire={onTurnstileExpire} />
+        <Turnstile
+          action="signup"
+          onVerify={onTurnstileVerify}
+          onExpire={onTurnstileExpire}
+        />
       ) : null}
       {error ? (
         <p className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">

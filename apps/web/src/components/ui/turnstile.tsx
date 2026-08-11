@@ -4,13 +4,15 @@ import Script from 'next/script'
 import { useEffect, useRef } from 'react'
 
 /**
- * Cloudflare Turnstile widget (free CAPTCHA alternative). Renders
- * only if NEXT_PUBLIC_TURNSTILE_SITE_KEY is set — otherwise this
- * component is a no-op so local dev / previews work without a key.
+ * Cloudflare Turnstile widget. Renders only if
+ * NEXT_PUBLIC_TURNSTILE_SITE_KEY is set — otherwise this component
+ * is a no-op so local dev without a key works normally.
  *
- * Emits the token via onVerify; parent forms should refuse to submit
- * until a token is captured, and the API route should re-verify the
- * token against Cloudflare's siteverify endpoint (/api/verify-turnstile).
+ * Emits the token via onVerify. Parent forms should refuse to submit
+ * until a token is captured, and the API route (/api/verify-turnstile)
+ * re-verifies the token server-side against Cloudflare's siteverify
+ * endpoint. The `action` prop is bound so a token minted for signup
+ * can't be replayed against a different surface.
  */
 
 declare global {
@@ -24,6 +26,7 @@ declare global {
           'expired-callback'?: () => void
           'error-callback'?: () => void
           theme?: 'auto' | 'light' | 'dark'
+          action?: string
         },
       ) => string
       reset: (widgetId?: string) => void
@@ -35,9 +38,12 @@ interface Props {
   onVerify: (token: string) => void
   onExpire?: () => void
   className?: string
+  /** Semantic surface tag — Cloudflare recommends binding one per
+   *  form so a token minted here can't be replayed on another surface. */
+  action?: string
 }
 
-export function Turnstile({ onVerify, onExpire, className }: Props) {
+export function Turnstile({ onVerify, onExpire, className, action = 'default' }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const widgetIdRef = useRef<string | null>(null)
   const siteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY
@@ -48,12 +54,11 @@ export function Turnstile({ onVerify, onExpire, className }: Props) {
 
     function tryRender() {
       if (cancelled || !window.turnstile || !containerRef.current) return
-      // Wipe any previous instance so hot-reload / re-render doesn't
-      // stack widgets.
       containerRef.current.innerHTML = ''
       widgetIdRef.current = window.turnstile.render(containerRef.current, {
         sitekey: siteKey!,
         theme: 'auto',
+        action,
         callback: (token) => onVerify(token),
         'expired-callback': () => onExpire?.(),
       })
@@ -76,7 +81,7 @@ export function Turnstile({ onVerify, onExpire, className }: Props) {
     return () => {
       cancelled = true
     }
-  }, [siteKey, onVerify, onExpire])
+  }, [siteKey, onVerify, onExpire, action])
 
   if (!siteKey) return null
 
