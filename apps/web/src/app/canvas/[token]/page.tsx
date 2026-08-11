@@ -57,8 +57,12 @@ export default async function SharedCanvasPage({ params }: PageProps) {
   if (!doc) notFound()
 
   return (
-    <div className="flex min-h-screen flex-col bg-bg">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3">
+    // h-screen (not min-h-screen) so the flex-1 child inherits a real
+    // pixel height. React Flow renders as 100%/100% and collapses to
+    // zero if the parent has no definite height — which is why the
+    // shared page used to render the title but an empty canvas below it.
+    <div className="flex h-screen flex-col bg-bg">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border bg-surface px-4 py-3">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-sm font-semibold tracking-tightish text-ink hover:text-brand">
             BizBridge
@@ -69,7 +73,10 @@ export default async function SharedCanvasPage({ params }: PageProps) {
           <h1 className="text-sm text-ink-muted">{doc.title}</h1>
         </div>
       </header>
-      <div className="flex-1">
+      {/* min-h-0 is load-bearing — without it, a flex child inherits
+          min-height: auto and refuses to shrink below its content, so
+          the 100% inside React Flow still resolves to zero. */}
+      <div className="min-h-0 flex-1">
         <CanvasSharedView nodes={doc.nodes} edges={doc.edges} />
       </div>
     </div>

@@ -22,25 +22,31 @@ import { NODE_TYPES } from '@/app/(dashboard)/dashboard/canvas/[id]/node-types'
 export function CanvasSharedView({ nodes, edges }: { nodes: Node[]; edges: Edge[] }) {
   const nodeTypes = useMemo(() => NODE_TYPES, [])
   return (
-    <ReactFlowProvider>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
-        proOptions={{ hideAttribution: true }}
-        nodesDraggable={false}
-        nodesConnectable={false}
-        edgesFocusable={false}
-      >
-        <Background gap={20} size={1} />
-        <MiniMap zoomable pannable className="!bg-surface !border-border" />
-        <Controls
-          showInteractive={false}
-          className="!bg-surface !border-border [&_button]:!bg-surface [&_button]:!border-border [&_button]:!text-ink"
-        />
-      </ReactFlow>
-    </ReactFlowProvider>
+    // Defensive h-full/w-full wrapper so React Flow always has a
+    // sized parent even if a future caller forgets to wrap us.
+    <div className="h-full w-full">
+      <ReactFlowProvider>
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          fitView
+          fitViewOptions={{ padding: 0.2 }}
+          proOptions={{ hideAttribution: true }}
+          nodesDraggable={false}
+          nodesConnectable={false}
+          edgesFocusable={false}
+          panOnScroll
+          zoomOnPinch
+        >
+          <Background gap={20} size={1} />
+          <MiniMap zoomable pannable className="!bg-surface !border-border" />
+          <Controls
+            showInteractive={false}
+            className="!bg-surface !border-border [&_button]:!bg-surface [&_button]:!border-border [&_button]:!text-ink"
+          />
+        </ReactFlow>
+      </ReactFlowProvider>
+    </div>
   )
 }
