@@ -200,8 +200,22 @@ export default async function MarketingLayout({ children }: { children: React.Re
                   </a>
                 </p>
               </div>
-              <p className="font-mono text-[11px] uppercase tracking-[0.12em] text-ink-faint">
-                Source: <span className="text-ink-muted">MOR Directive 17/2011</span> · 519 sectors
+              <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-faint">
+                <span>
+                  Source: <span className="text-ink-muted">MOR Directive 17/2011</span> · 519 sectors
+                </span>
+                <span aria-hidden>·</span>
+                <span className="normal-case tracking-normal">
+                  Built by Cheri at{' '}
+                  <a
+                    href="https://doxaplc.com"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-ink-muted hover:text-brand"
+                  >
+                    Doxa Innovations
+                  </a>
+                </span>
               </p>
             </div>
           </div>

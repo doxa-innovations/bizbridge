@@ -182,7 +182,17 @@ export default async function DashboardPage() {
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       {/* Marketing modal — auto-opens ~20s after landing, snoozeable 14 days. */}
-      <DoxaPromoModal />
+      {/* Doxa pitch shows ONLY to onboarded diaspora / foreign_investor
+          users — the group actually likely to need software built once
+          the paperwork is behind them. Locals + not-yet-onboarded users
+          don't see it. */}
+      <DoxaPromoModal
+        enabled={
+          Boolean(user.onboardedAt) &&
+          (user.userType === 'diaspora' || user.userType === 'foreign_investor')
+        }
+        userType={user.userType ?? null}
+      />
 
       {/* ONBOARDING NUDGE — persistent thin banner when user skipped */}
       {!user.onboardedAt && user.onboardingSkippedAt ? (

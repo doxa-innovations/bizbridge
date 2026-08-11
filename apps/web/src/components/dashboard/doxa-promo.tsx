@@ -14,30 +14,40 @@ import { cn } from '@/lib/cn'
 
 const DISMISS_KEY = 'doxa-promo-dismissed-until'
 const REMIND_LATER_DAYS = 14
-const AUTO_OPEN_DELAY_MS = 20_000 // 20s after landing on the dashboard
+const AUTO_OPEN_DELAY_MS = 45_000 // 45s after landing so it doesn't ambush the user
+
+interface Props {
+  /** Server-side gate: only render+auto-open when this is true. Parent
+   *  computes it from user tailoring (`enabled` when the user has
+   *  finished onboarding AND is diaspora or foreign_investor). */
+  enabled?: boolean
+  /** Optional user-type override so we can tailor headline copy. */
+  userType?: string | null
+  /** Ignored when `enabled` is false — the modal is a no-op then. */
+  autoOpen?: boolean
+}
 
 /**
- * Marketing modal that promotes Doxa Innovations (the software studio behind
- * BizBridge) as a build-partner for people setting up businesses. Rendered
- * once per session per user, snoozeable for ~2 weeks via localStorage.
+ * Contextual pitch for Doxa Innovations, shown ONLY to onboarded
+ * diaspora / foreign-investor users who look like real leads (they'll
+ * need the software Doxa builds — bookings, delivery, POS, sites — as
+ * they set up in-country). Local Ethiopian users don't see this;
+ * they're mostly here for the regulatory data, not to hire a studio.
  *
- * Two entry points:
- *  - Auto-opens 20s after the user has landed on the dashboard, but only if
- *    they haven't dismissed within the snooze window.
- *  - Trigger prop lets any parent open it on demand ("Build with Doxa" pill).
+ * Snoozeable for ~2 weeks per user via localStorage.
  */
-export function DoxaPromoModal({ autoOpen = true }: { autoOpen?: boolean }) {
+export function DoxaPromoModal({ enabled = false, userType, autoOpen = true }: Props) {
   const [open, setOpen] = useState(false)
 
   useEffect(() => {
-    if (!autoOpen) return
+    if (!enabled || !autoOpen) return
     const raw = typeof window !== 'undefined' ? window.localStorage.getItem(DISMISS_KEY) : null
     const dismissedUntil = raw ? Number(raw) : 0
     if (dismissedUntil && Date.now() < dismissedUntil) return
 
     const timer = setTimeout(() => setOpen(true), AUTO_OPEN_DELAY_MS)
     return () => clearTimeout(timer)
-  }, [autoOpen])
+  }, [enabled, autoOpen])
 
   function dismiss(snooze: boolean) {
     setOpen(false)
@@ -50,6 +60,17 @@ export function DoxaPromoModal({ autoOpen = true }: { autoOpen?: boolean }) {
       }
     }
   }
+
+  // When disabled, render nothing so the marketing pitch doesn't reach
+  // local users or anyone who hasn't finished onboarding.
+  if (!enabled) return null
+
+  const headline =
+    userType === 'diaspora'
+      ? 'Opening from abroad?'
+      : userType === 'foreign_investor'
+        ? 'Setting up in Ethiopia?'
+        : 'Building your product?'
 
   return (
     <Dialog open={open} onOpenChange={(o) => (o ? setOpen(true) : dismiss(true))}>
@@ -77,7 +98,7 @@ export function DoxaPromoModal({ autoOpen = true }: { autoOpen?: boolean }) {
             </span>
             <div className="text-brand-foreground">
               <p className="font-mono text-[10px] uppercase tracking-[0.14em] opacity-80">
-                Software partner
+                A note from Cheri
               </p>
               <p className="text-lg font-semibold tracking-tightish">Doxa Innovations</p>
             </div>
@@ -95,19 +116,29 @@ export function DoxaPromoModal({ autoOpen = true }: { autoOpen?: boolean }) {
         <div className="space-y-4 px-6 py-5">
           <div>
             <DialogTitle className="text-xl font-semibold tracking-tightish text-ink">
-              Ready to build your product?
+              {headline}
             </DialogTitle>
             <DialogDescription className="mt-1.5 text-sm text-ink-muted">
-              Doxa builds the tech spine behind BizBridge, Fida Delivery, and Classic Noodle.
-              If you&apos;re past sector selection and need an actual product built —
-              website, mobile app, backend, admin dashboard — Doxa can quote you.
+              Full disclosure — BizBridge and{' '}
+              <a
+                href="https://doxaplc.com"
+                target="_blank"
+                rel="noreferrer"
+                className="text-brand hover:underline"
+              >
+                Doxa Innovations
+              </a>{' '}
+              are both built by the same team in Bishoftu. Once the paperwork is behind you,
+              you&apos;ll probably need software — a booking site, a delivery integration, a
+              POS, a customer portal. Doxa builds those for Ethiopian operators. Happy to
+              scope it with you for free.
             </DialogDescription>
           </div>
 
           <ul className="grid gap-2 text-sm">
-            <PromoBullet>End-to-end: design, engineering, deployment</PromoBullet>
+            <PromoBullet>Design → build → deploy under one roof</PromoBullet>
             <PromoBullet>Web + iOS + Android in the same sprint</PromoBullet>
-            <PromoBullet>Ethiopian-payment integrations (Chapa, Telebirr, CBE)</PromoBullet>
+            <PromoBullet>Local payments: Telebirr, CBE Birr, Chapa</PromoBullet>
             <PromoBullet>Post-launch support, not just handover</PromoBullet>
           </ul>
 
@@ -124,12 +155,12 @@ export function DoxaPromoModal({ autoOpen = true }: { autoOpen?: boolean }) {
             </Button>
             <Button asChild size="sm" variant="secondary">
               <a
-                href="https://t.me/Cherireal7"
+                href="https://t.me/cherireal7"
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => dismiss(true)}
               >
-                <MessageCircle className="h-3.5 w-3.5" /> Message on Telegram
+                <MessageCircle className="h-3.5 w-3.5" /> Message Cheri
               </a>
             </Button>
             <button
@@ -137,7 +168,7 @@ export function DoxaPromoModal({ autoOpen = true }: { autoOpen?: boolean }) {
               onClick={() => dismiss(true)}
               className="ml-auto text-xs text-ink-faint hover:text-ink"
             >
-              Remind me later
+              Not interested
             </button>
           </div>
         </div>

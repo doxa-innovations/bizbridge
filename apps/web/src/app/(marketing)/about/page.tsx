@@ -76,6 +76,29 @@ export default function AboutPage() {
                 no signup, no upsell ladder.
               </p>
             </Block>
+            <Block title="Who's behind this">
+              <p>
+                Me — Cheri. I&apos;m on the team at{' '}
+                <a
+                  href="https://doxaplc.com"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-brand hover:underline"
+                >
+                  Doxa Innovations
+                </a>
+                , a Bishoftu-based software studio. Doxa builds product for Ethiopian
+                businesses — booking systems, delivery apps, POS integrations. BizBridge is a
+                side thing I run in the same neighbourhood.
+              </p>
+              <p className="mt-3">
+                Being transparent: Doxa doesn&apos;t own or steer BizBridge — the sector data,
+                the rankings, the recommendations are all mine and independent. But if
+                you&apos;re opening a business here and eventually need the software built,
+                Doxa is who I&apos;d point you at (and I&apos;d be the one on that team). Fair to
+                know upfront.
+              </p>
+            </Block>
             <Block title="What you get on this site — all free">
               <ul className="mt-3 space-y-2">
                 <li className="flex gap-2">
