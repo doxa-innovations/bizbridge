@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Home } from 'lucide-react'
 import { CommandPaletteProvider } from '@/components/command-palette/command-palette'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { SuggestionBox } from '@/components/suggestion-box'
 import { requireUser } from '@/lib/require-user'
 import { AccountMenu } from './account-menu'
 import { SidebarNav } from './sidebar-nav'
@@ -62,6 +63,15 @@ export default async function DashboardLayout({ children }: { children: React.Re
             </div>
           </header>
           <div className="px-6 py-8 lg:px-10">{children}</div>
+
+          {/* Suggestion box hangs off the bottom of every dashboard
+              page — one place to catch bug reports + feature ideas
+              from signed-in users. Skipped on the fullscreen canvas
+              editor route (which uses fixed positioning) because it
+              wouldn't be visible anyway. */}
+          <div className="px-6 pb-8 lg:px-10">
+            <SuggestionBox />
+          </div>
 
           <MobileBottomNav />
           {/* Spacer so content isn't hidden behind the bottom nav on mobile */}

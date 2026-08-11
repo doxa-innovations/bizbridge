@@ -59,12 +59,16 @@ function NodeChrome({
   const { setNodes, setEdges } = useReactFlow()
   return (
     <>
+      {/* React Flow's NodeResizer renders 8 grab points by default — 4
+       *  corners + 4 edges. Bumped up from 8px to 10px + coloured ring
+       *  so users can actually see and grab them. Drag any corner for
+       *  proportional resize, any edge for single-axis. */}
       <NodeResizer
         isVisible={Boolean(selected)}
         minWidth={minWidth}
         minHeight={minHeight}
-        lineClassName="!border-brand/60"
-        handleClassName="!h-2 !w-2 !rounded-sm !border !border-surface !bg-brand"
+        lineClassName="!border-2 !border-brand/70"
+        handleClassName="!h-2.5 !w-2.5 !rounded-full !border-2 !border-surface !bg-brand !shadow-md"
       />
       <div
         className={cn(

@@ -3,6 +3,7 @@ import { LayoutDashboard, Send } from 'lucide-react'
 import { CommandPaletteProvider } from '@/components/command-palette/command-palette'
 import { CommandTrigger } from '@/components/command-palette/command-trigger'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
+import { SuggestionBox } from '@/components/suggestion-box'
 import { SupportWidget } from '@/components/support-widget'
 import { MobileNav } from '@/components/marketing/mobile-nav'
 import { NavDropdown } from '@/components/marketing/nav-dropdown'
@@ -112,6 +113,13 @@ export default async function MarketingLayout({ children }: { children: React.Re
         </header>
 
         <main className="flex-1">{children}</main>
+
+        {/* Suggestion drop-box sits just above the footer on every
+            marketing page. Cheap way to keep collecting improvements
+            without depending on a formal support workflow. */}
+        <div className="container-page mt-10 mb-4">
+          <SuggestionBox variant="footer" />
+        </div>
 
         <footer className="border-t border-border/70 bg-bg">
           <div className="container-page py-14">

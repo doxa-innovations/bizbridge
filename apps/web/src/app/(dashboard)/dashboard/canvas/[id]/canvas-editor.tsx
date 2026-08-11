@@ -538,6 +538,12 @@ function CanvasEditorInner({
             snapGrid={[20, 20]}
             deleteKeyCode={null}
             connectionRadius={40}
+            // Figma-wide zoom range. Default React Flow caps at 0.5x-2x
+            // which feels constrained on a large plan. 0.05x lets users
+            // survey a huge canvas at a glance; 4x lets them close-work
+            // on a single node's text.
+            minZoom={0.05}
+            maxZoom={4}
             // Pan/zoom defaults tuned for laptop trackpad users:
             //   - trackpad two-finger scroll pans (both axes)
             //   - trackpad pinch zooms
