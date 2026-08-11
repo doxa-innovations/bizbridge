@@ -5,9 +5,17 @@ import { ArrowRight, Check, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Label } from '@/components/ui/label'
+import { CountryPicker } from '@/components/ui/country-picker'
 import { GeometricIcon } from '@/components/marketing/geometric-icon'
 import { cn } from '@/lib/cn'
 import { submitOnboarding } from './actions'
+
+const USER_TYPES = [
+  { value: 'local', label: 'Local entrepreneur' },
+  { value: 'diaspora', label: 'Diaspora' },
+  { value: 'foreign_investor', label: 'Foreign investor' },
+]
 
 interface CategoryOption {
   id: string | number
@@ -34,6 +42,8 @@ const MAX_INTERESTS = 5
 
 export function OnboardingForm({ categories, tiers, initialLocale }: Props) {
   const [step, setStep] = useState<1 | 2>(1)
+  const [country, setCountry] = useState('ET')
+  const [userType, setUserType] = useState('local')
   const [selectedCats, setSelectedCats] = useState<string[]>([])
   const [selectedTier, setSelectedTier] = useState<string | null>(null)
   const [locale, setLocale] = useState<'en' | 'am'>(initialLocale)
@@ -68,9 +78,31 @@ export function OnboardingForm({ categories, tiers, initialLocale }: Props) {
         <span className={cn('font-mono', step >= 2 && 'text-ink')}>2. Budget</span>
       </div>
 
-      {/* STEP 1 — INTERESTS */}
+      {/* STEP 1 — ABOUT YOU + INTERESTS */}
       {step === 1 ? (
         <Card className="p-6 sm:p-8">
+          <div className="mb-6 grid gap-4 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="country">Where are you based?</Label>
+              <CountryPicker id="country" value={country} onChange={setCountry} />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="user_type">I am a…</Label>
+              <select
+                id="user_type"
+                value={userType}
+                onChange={(e) => setUserType(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
+              >
+                {USER_TYPES.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
           <h2 className="text-xl font-semibold tracking-tightish">
             What areas are you interested in?
           </h2>
@@ -122,6 +154,8 @@ export function OnboardingForm({ categories, tiers, initialLocale }: Props) {
                     interestCategories: [],
                     interestSectors: [],
                     capitalTier: null,
+                    country,
+                    userType,
                     skip: true,
                   })
                 }
@@ -217,6 +251,8 @@ export function OnboardingForm({ categories, tiers, initialLocale }: Props) {
                   interestCategories: selectedCats,
                   interestSectors: [],
                   capitalTier: selectedTier,
+                  country,
+                  userType,
                   locale,
                 })
               }

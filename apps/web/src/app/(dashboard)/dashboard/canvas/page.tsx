@@ -1,13 +1,14 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
-import { Layers3, Share2, Trash2 } from 'lucide-react'
+import { Layers3, Share2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { requireUser } from '@/lib/require-user'
 import { getPayloadClient } from '@/lib/payload'
 import { CANVAS_TEMPLATES } from '@/lib/canvas-template'
-import { createCanvas, deleteCanvas } from './actions'
+import { createCanvas } from './actions'
+import { DeleteCanvasButton } from './delete-canvas-button'
 
 export const metadata: Metadata = { title: 'Planning canvas' }
 export const dynamic = 'force-dynamic'
@@ -150,12 +151,7 @@ export default async function CanvasListPage() {
                   <Button asChild size="sm" variant="secondary">
                     <Link href={`/dashboard/canvas/${c.id}`}>Open</Link>
                   </Button>
-                  <form action={deleteCanvas}>
-                    <input type="hidden" name="id" value={c.id} />
-                    <Button type="submit" size="sm" variant="ghost">
-                      <Trash2 className="h-3.5 w-3.5" /> Delete
-                    </Button>
-                  </form>
+                  <DeleteCanvasButton id={c.id} title={c.title} />
                 </div>
               </Card>
             ))}

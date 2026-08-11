@@ -11,6 +11,11 @@ type OnboardingPayload = {
   capitalTier: string | null
   locale?: 'en' | 'am'
   phone?: string
+  /** ISO 3166-1 alpha-2 country code. Optional at onboarding — user
+   *  can skip. */
+  country?: string | null
+  /** 'local' | 'diaspora' | 'foreign_investor'. Optional. */
+  userType?: string | null
   skip?: boolean
 }
 
@@ -27,6 +32,8 @@ export async function submitOnboarding(payload: OnboardingPayload) {
   }
   if (payload.locale) patch.locale = payload.locale
   if (payload.phone) patch.phone = payload.phone
+  if (payload.country) patch.country = payload.country
+  if (payload.userType) patch.userType = payload.userType
   if (payload.skip) {
     patch.onboardingSkippedAt = now
   } else {

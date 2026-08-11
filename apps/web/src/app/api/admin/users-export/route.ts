@@ -49,24 +49,38 @@ interface UserRow {
   country: string | null
   user_type: string | null
   capital_tier: string | null
+  marketing_opt_in: boolean | null
   onboarded_at: string | null
   created_at: string
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   const user = await getCurrentUser()
   if (!user) return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
   if (!isAdminEmail(user.email)) {
     return NextResponse.json({ error: 'forbidden' }, { status: 403 })
   }
 
+  // ?scope=marketing → only marketing-opted-in users (safe for bulk
+  // mailshots). Default is all users (transactional / support use).
+  const scope = new URL(req.url).searchParams.get('scope')
+  const onlyOptedIn = scope === 'marketing'
+
   try {
+    // Better Auth's schema maps camelCase JS props to snake_case DB
+    // columns (see src/lib/auth-schema.ts). All column names below are
+    // the actual DB names; aliases match the CSV header.
+    const where = onlyOptedIn ? `WHERE "marketing_opt_in" = true` : ''
     const res = await getPool().query<UserRow>(
-      `SELECT id, email, name, country, "userType" AS user_type,
-              "capitalTier" AS capital_tier, "onboardedAt" AS onboarded_at,
-              "createdAt" AS created_at
+      `SELECT id, email, name, country,
+              user_type,
+              capital_tier,
+              marketing_opt_in,
+              onboarded_at,
+              created_at
          FROM "user"
-        ORDER BY "createdAt" DESC`,
+         ${where}
+        ORDER BY created_at DESC`,
     )
 
     const header = [
@@ -75,6 +89,7 @@ export async function GET() {
       'country',
       'user_type',
       'capital_tier',
+      'marketing_opt_in',
       'onboarded',
       'signed_up_at',
     ]
@@ -87,17 +102,22 @@ export async function GET() {
           csvEscape(r.country ?? ''),
           csvEscape(r.user_type ?? ''),
           csvEscape(r.capital_tier ?? ''),
+          r.marketing_opt_in ? 'yes' : 'no',
           r.onboarded_at ? 'yes' : 'no',
           csvEscape(r.created_at),
         ].join(','),
       )
     }
 
+    const filename = onlyOptedIn
+      ? `bizbridge-marketing-optin-${new Date().toISOString().slice(0, 10)}.csv`
+      : `bizbridge-users-${new Date().toISOString().slice(0, 10)}.csv`
+
     return new NextResponse(lines.join('\n'), {
       status: 200,
       headers: {
         'content-type': 'text/csv; charset=utf-8',
-        'content-disposition': `attachment; filename="bizbridge-users-${new Date().toISOString().slice(0, 10)}.csv"`,
+        'content-disposition': `attachment; filename="${filename}"`,
         'cache-control': 'private, no-store',
       },
     })

@@ -6,13 +6,6 @@ import { signUp } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { CountryPicker } from '@/components/ui/country-picker'
-
-const USER_TYPES = [
-  { value: 'local', label: 'Local entrepreneur' },
-  { value: 'diaspora', label: 'Diaspora' },
-  { value: 'foreign_investor', label: 'Foreign investor' },
-]
 
 function safeNext(raw: string | null): string {
   if (!raw) return '/dashboard'
@@ -20,6 +13,17 @@ function safeNext(raw: string | null): string {
   return raw
 }
 
+/**
+ * Bare-minimum signup form — three required fields (name, email,
+ * password) + one optional marketing opt-in. Country and user-type
+ * used to live here and were the biggest friction points (people
+ * hesitate at "country ISO" and stall on choosing "diaspora vs
+ * foreign investor"). Both moved to /dashboard/onboarding where the
+ * multi-step flow gives them proper context.
+ *
+ * Transactional email (welcome, password reset) fires regardless of
+ * `marketingOptIn` — the flag only gates bulk product updates.
+ */
 export function SignupForm() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -27,8 +31,7 @@ export function SignupForm() {
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [country, setCountry] = useState('ET')
-  const [userType, setUserType] = useState('local')
+  const [marketingOptIn, setMarketingOptIn] = useState(true)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -42,9 +45,8 @@ export function SignupForm() {
         password,
         name: fullName,
         // @ts-expect-error — Better Auth additionalFields aren't in the typed signature
-        country,
-        userType,
         fullName,
+        marketingOptIn,
       })
       if (res.error) {
         setError(res.error.message ?? 'Signup failed')
@@ -96,27 +98,18 @@ export function SignupForm() {
           placeholder="••••••••"
         />
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-1.5">
-          <Label htmlFor="country">Country</Label>
-          <CountryPicker id="country" value={country} onChange={setCountry} />
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="user_type">I am a…</Label>
-          <select
-            id="user_type"
-            value={userType}
-            onChange={(e) => setUserType(e.target.value)}
-            className="flex h-10 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-ink focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20"
-          >
-            {USER_TYPES.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <label className="flex items-start gap-2 text-xs text-ink-muted">
+        <input
+          type="checkbox"
+          checked={marketingOptIn}
+          onChange={(e) => setMarketingOptIn(e.target.checked)}
+          className="mt-0.5 accent-brand"
+        />
+        <span>
+          Send me occasional product updates and hand-written notes from Cheri. Uncheck to
+          only receive account emails (password reset, verification). No spam either way.
+        </span>
+      </label>
       {error ? (
         <p className="rounded-md border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger">
           {error}
@@ -126,7 +119,7 @@ export function SignupForm() {
         {loading ? 'Creating account…' : 'Create account'}
       </Button>
       <p className="text-center text-2xs text-ink-faint">
-        By signing up you agree to our terms and the welcome email sequence. No spam.
+        Next step: 30-second onboarding to tailor your dashboard.
       </p>
     </form>
   )

@@ -48,6 +48,15 @@ function pickBackend(): 'resend' | 'telegram' | 'console' {
   return 'console'
 }
 
+/**
+ * Heads-up on the sandbox from-address:
+ *   `onboarding@resend.dev` (Resend's shared sandbox) will ONLY deliver
+ *   to the Resend-account holder's own verified email. Password resets
+ *   for anyone else silently fail. To fix: verify a domain in the
+ *   Resend dashboard (add DNS TXT + MX records for e.g. doxaplc.com),
+ *   then flip RESEND_FROM to `noreply@doxaplc.com`. No code change.
+ */
+
 async function sendViaResend(input: SendEmailInput): Promise<SendEmailResult> {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',

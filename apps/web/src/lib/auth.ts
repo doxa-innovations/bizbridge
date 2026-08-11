@@ -63,6 +63,39 @@ export const auth = betterAuth({
       onboardedAt: { type: 'date', required: false },
       onboardingSkippedAt: { type: 'date', required: false },
       locale: { type: 'string', required: false },
+      // Opt-in flag for marketing email (product updates, occasional
+      // hand-written notes). Transactional email — password reset,
+      // verification — is sent regardless.
+      marketingOptIn: { type: 'boolean', required: false },
+    },
+  },
+  /** Fires after any user row is created (signup). We use it to send a
+   *  short welcome email through the shared sendEmail helper so a new
+   *  user gets an acknowledgement + link back to /dashboard. Wrapped
+   *  in try/catch so a mail-provider hiccup never blocks signup. */
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          try {
+            const appUrl =
+              process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, '') || 'https://biz.doxaplc.com'
+            await sendEmail({
+              to: user.email,
+              subject: 'Welcome to BizBridge Ethiopia',
+              text:
+                `Hi ${user.name ?? 'there'},\n\n` +
+                `Thanks for signing up. BizBridge is a free BI product for anyone opening a business in Ethiopia — 519 official MOR sectors, cost calculator, checklists, and a planning canvas.\n\n` +
+                `Log in and finish the 30-second onboarding to tailor your dashboard:\n${appUrl}/dashboard\n\n` +
+                `Reply to this email or DM @cherireal7 on Telegram if you get stuck.\n\n` +
+                `— Cheri, BizBridge`,
+            })
+          } catch (err) {
+            // eslint-disable-next-line no-console
+            console.error('[auth] welcome-email failed', err)
+          }
+        },
+      },
     },
   },
   // Trust every origin the app might legitimately be served from. Reading a

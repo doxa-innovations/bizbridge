@@ -20,6 +20,11 @@ const COLUMNS = [
   { name: 'onboarded_at', type: 'timestamp with time zone' },
   { name: 'onboarding_skipped_at', type: 'timestamp with time zone' },
   { name: 'locale', type: 'text' },
+  // Bulk-marketing opt-in. Transactional email (welcome, password
+  // reset) fires regardless of this flag. Default true because we ask
+  // an explicit opt-in checkbox on signup — existing rows (before this
+  // column) get NULL which is treated as "not opted in" by the export.
+  { name: 'marketing_opt_in', type: 'boolean' },
 ] as const
 
 async function main() {

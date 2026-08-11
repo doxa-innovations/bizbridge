@@ -55,3 +55,7 @@ coverage/
 
 # Local Claude Code project config + skills
 .claude/
+
+# Extraction scratch (regenerate with tools/parse-mor.cjs)
+docs/mor/*.txt
+docs/mor/pilot-raw.json
