@@ -8,10 +8,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { CONSULT_EMAIL, CONSULT_TELEGRAM } from '@/lib/flags'
 
-const AJAX_ENDPOINT = `https://formsubmit.co/ajax/${CONSULT_EMAIL}`
-
 type State = 'idle' | 'submitting' | 'sent' | 'error'
 
+/** Submits to /api/consult, which delivers via Resend using the same
+ *  sendEmail helper that powers the welcome + reset emails. Replaces
+ *  the old Formsubmit.co dependency — one less third-party call, same
+ *  inbox (CONSULT_EMAIL). */
 export function ConsultForm() {
   const [state, setState] = useState<State>('idle')
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
@@ -23,28 +25,23 @@ export function ConsultForm() {
 
     const form = event.currentTarget
     const data = new FormData(form)
-    const payload: Record<string, string> = {
-      _subject: 'BizBridge consult request',
-      _captcha: 'false',
-      _template: 'table',
-    }
+    const payload: Record<string, string> = {}
     for (const [key, value] of data.entries()) {
       if (typeof value === 'string') payload[key] = value
     }
 
     try {
-      const res = await fetch(AJAX_ENDPOINT, {
+      const res = await fetch('/api/consult', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Accept: 'application/json',
-        },
+        headers: { 'content-type': 'application/json' },
         body: JSON.stringify(payload),
       })
-      if (!res.ok) throw new Error(`Formsubmit returned ${res.status}`)
-      const json = (await res.json()) as { success?: string; message?: string }
-      if (json.success === 'false' || json.success === undefined) {
-        throw new Error(json.message ?? 'Submission failed')
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as {
+          hint?: string
+          error?: string
+        }
+        throw new Error(body.hint ?? body.error ?? `Request failed (${res.status})`)
       }
       setState('sent')
       form.reset()
