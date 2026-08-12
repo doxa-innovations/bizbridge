@@ -77,10 +77,10 @@ export default async function AdminAnalyticsPage() {
         (SELECT COUNT(*) FROM "payload".page_events WHERE event_type = 'suggestion_submit')::text AS total_reset_requests
     `),
     client.query<{ day: string; n: string }>(`
-      SELECT to_char(date_trunc('day', "createdAt"), 'YYYY-MM-DD') AS day,
+      SELECT to_char(date_trunc('day', created_at), 'YYYY-MM-DD') AS day,
              COUNT(*)::text AS n
       FROM "user"
-      WHERE "createdAt" > now() - interval '30 days'
+      WHERE created_at > now() - interval '30 days'
       GROUP BY 1
       ORDER BY 1
     `),
@@ -139,15 +139,15 @@ export default async function AdminAnalyticsPage() {
       onboarded_at: string | null
       created_at: string
     }>(`
-      SELECT email, name, country, user_type, onboarded_at, "createdAt" AS created_at
+      SELECT email, name, country, user_type, onboarded_at, created_at AS created_at
       FROM "user"
-      ORDER BY "createdAt" DESC
+      ORDER BY created_at DESC
       LIMIT 20
     `),
     client.query<{ n: string }>(`
       SELECT COUNT(DISTINCT COALESCE(user_id, session_id))::text AS n
       FROM "payload".page_events
-      WHERE "createdAt" > now() - interval '7 days'
+      WHERE created_at > now() - interval '7 days'
         AND COALESCE(user_id, session_id) IS NOT NULL
     `),
   ])
