@@ -85,6 +85,13 @@
   html,
   body {
     height: 100%;
+    /* overflow-x: clip prevents any stray-wide element (SVG backdrop,
+       marquee mid-scroll, chart canvas) from producing a horizontal
+       scroll on mobile — which was letterboxing the whole layout
+       inside phone viewports. `clip` (not `hidden`) is preferred
+       because it doesn't create a scroll container, so position:
+       sticky elements still anchor to the viewport. */
+    overflow-x: clip;
   }
   body {
     @apply bg-bg text-ink antialiased;

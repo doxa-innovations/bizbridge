@@ -85,6 +85,12 @@ export const metadata: Metadata = {
 }
 
 export const viewport: Viewport = {
+  // Explicit width + initialScale so mobile browsers definitely
+  // render at native viewport width instead of falling back to a
+  // desktop-ish default (which was causing the site to render at
+  // ~400px width letterboxed inside a phone screen).
+  width: 'device-width',
+  initialScale: 1,
   themeColor: [
     { media: '(prefers-color-scheme: dark)', color: '#0E100E' },
     { media: '(prefers-color-scheme: light)', color: '#F5F2E8' },
