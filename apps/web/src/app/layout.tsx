@@ -6,6 +6,7 @@ import { Noto_Sans_Ethiopic } from 'next/font/google'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { CurrencyProvider } from '@/components/providers/currency-provider'
 import { PageTracker } from '@/components/page-tracker'
+import { Clarity } from '@/components/clarity'
 import { Toaster } from 'sonner'
 import './globals.css'
 
@@ -146,6 +147,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Suspense fallback={null}>
               <PageTracker />
             </Suspense>
+            {/* Microsoft Clarity — heatmaps + session replays.
+                Renders nothing when NEXT_PUBLIC_CLARITY_ID is unset,
+                so local dev doesn't pollute the prod dashboard. */}
+            <Clarity />
           </CurrencyProvider>
         </ThemeProvider>
       </body>
