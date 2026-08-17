@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Badge } from '@/components/ui/badge'
 import { GridBackdrop } from '@/components/marketing/grid-backdrop'
+import { FxWidget } from '@/components/fx/fx-widget'
 import { CalculatorClient } from './calculator-client'
 
 export const metadata: Metadata = {
@@ -31,6 +32,9 @@ export default async function CalculatorPage({ searchParams }: PageProps) {
             Move the sliders. See your end-to-end setup cost — government fees, professional
             services, capital requirement floor, and contingency — recompute in real time.
           </p>
+          <div className="mt-8 max-w-2xl">
+            <FxWidget />
+          </div>
         </div>
       </section>
       <section className="container-page py-10">
