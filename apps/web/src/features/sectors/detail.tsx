@@ -24,6 +24,8 @@ import { GeometricIcon } from '@/components/marketing/geometric-icon'
 import { StatCard } from '@/components/marketing/stat-card'
 import { Skeleton } from '@/components/ui/skeleton'
 import { BookmarkButton } from '@/components/sectors/bookmark-button'
+import { FxWidget } from '@/components/fx/fx-widget'
+import { EicThresholdCard } from '@/components/sectors/eic-threshold-card'
 
 /**
  * Shared sector-detail feature. Rendered by both the public `/sectors/[slug]`
@@ -222,6 +224,12 @@ export async function SectorDetailFeature({
       ) : null}
 
       {/* EVERYTHING ELSE — streams in via Suspense so the shell above renders fast */}
+      {category?.slug ? (
+        <section className="container-page pt-10">
+          <EicThresholdCard categorySlug={category.slug} />
+        </section>
+      ) : null}
+
       <Suspense fallback={<SectorSectionsSkeleton />}>
         <SectorSections
           sectorId={sector.id}
@@ -454,6 +462,9 @@ async function SectorSections({
             </SectorSection>
 
             <SectorSection id="costs" icon={<Calculator />} title="Cost breakdown">
+              <div className="mb-4">
+                <FxWidget compact />
+              </div>
               {costs.length > 0 ? (
                 <Card className="overflow-hidden">
                   <table className="w-full text-sm">

@@ -17,9 +17,11 @@ const TOOLS_ITEMS = [
   { href: '/checklist', label: 'Setup checklist', description: 'Every step from TIN to trade license' },
   { href: '/compare', label: 'Compare sectors', description: 'Up to 3 side by side' },
   { href: '/lookup', label: 'MOR code lookup', description: 'Find the exact 5-digit code' },
+  { href: '/verify', label: 'Verify a business', description: 'TIN + trade licence quick-check' },
 ]
 
 const LEARN_ITEMS = [
+  { href: '/news', label: 'News feed', description: 'Live headlines from 3 Ethiopian newsrooms' },
   { href: '/resources', label: 'Legal resources', description: 'Amharic explainers + official portals' },
   { href: '/bishoftu', label: 'Bishoftu Pulse', description: 'Live city indicators & research' },
   { href: '/reports', label: 'Reports catalog', description: 'Free downloadable market briefs' },
@@ -147,6 +149,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
                   { href: '/sectors', label: 'All 519 sectors' },
                   { href: '/services', label: 'eTrade services' },
                   { href: '/lookup', label: 'MOR code lookup' },
+                  { href: '/verify', label: 'Verify a business' },
                   { href: '/compare', label: 'Compare sectors' },
                   { href: '/calculator', label: 'Cost calculator' },
                   { href: '/checklist', label: 'Setup checklist' },
@@ -157,6 +160,7 @@ export default async function MarketingLayout({ children }: { children: React.Re
               <FooterColumn
                 title="Research"
                 links={[
+                  { href: '/news', label: 'News feed' },
                   { href: '/resources', label: 'Legal resources' },
                   { href: '/bishoftu', label: 'Bishoftu Pulse' },
                   { href: '/companies', label: 'Companies in good standing' },

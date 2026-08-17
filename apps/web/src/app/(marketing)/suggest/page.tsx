@@ -6,6 +6,7 @@ import { humanizeSectorName } from '@/lib/humanize-sector-name'
 import { CAPITAL_TIERS } from '@/seed/data/capital-suggestions'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
+import { FxWidget } from '@/components/fx/fx-widget'
 import { SuggestClient } from './suggest-client'
 
 export const metadata: Metadata = {
@@ -53,6 +54,9 @@ export default async function SuggestPage() {
             down to a realistic shortlist for that budget in Ethiopia today — no upsell, no
             gatekeeping. Numbers are indicative of post-float 2026 cost reality.
           </p>
+          <div className="mt-8 max-w-2xl">
+            <FxWidget />
+          </div>
         </div>
       </section>
 
