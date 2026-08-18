@@ -46,12 +46,14 @@ export default async function ResearchPage() {
         depth: 1,
         sort: '-saved_at',
       }),
-      payload.find({
-        collection: 'reports',
-        limit: 6,
-        depth: 0,
-        sort: '-updatedAt',
-      }),
+      payload
+        .find({
+          collection: 'reports',
+          limit: 6,
+          depth: 0,
+          sort: '-updatedAt',
+        })
+        .catch(() => ({ docs: [] as unknown[], totalDocs: 0 })),
     ])
     return {
       savedSectors: saved.docs
