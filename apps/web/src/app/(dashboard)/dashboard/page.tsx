@@ -87,12 +87,14 @@ export default async function DashboardPage() {
         depth: 1,
         sort: '-saved_at',
       }),
-      payload.find({
-        collection: 'reports',
-        limit: 3,
-        depth: 0,
-        sort: '-updatedAt',
-      }),
+      payload
+        .find({
+          collection: 'reports',
+          limit: 3,
+          depth: 0,
+          sort: '-updatedAt',
+        })
+        .catch(() => ({ docs: [] as unknown[], totalDocs: 0 })),
       payload.find({
         collection: 'business-sectors',
         limit: 0,

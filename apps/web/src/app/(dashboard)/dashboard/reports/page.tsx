@@ -25,12 +25,14 @@ export default async function ReportsPage() {
 
   const data = await tryPayload(async (payload) => {
     const [reports, mine] = await Promise.all([
-      payload.find({
-        collection: 'reports',
-        sort: '-updatedAt',
-        limit: 30,
-        depth: 1,
-      }),
+      payload
+        .find({
+          collection: 'reports',
+          sort: '-updatedAt',
+          limit: 30,
+          depth: 1,
+        })
+        .catch(() => ({ docs: [] as unknown[], totalDocs: 0 })),
       payload.find({
         collection: 'report-requests',
         where: {
